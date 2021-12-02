@@ -8,33 +8,30 @@ import math
 data = open("data.txt", "r")
 lines = data.readlines()
 
-
-# a is a list of sliding window sums
-a = []
-win = deque()
+depth = 0
+forward = 0
+aim = 0
 
 for line in lines:
     if line == "\n":
         continue
 
-    c = int(line)
+    s = line.split(" ")
 
-    win.append(c)
+    cmd = s[0]
+    delta = int(s[1])
 
-    if len(win) > 3:
-        win.popleft()
+    if cmd == "forward":
+        forward += delta
+        depth += aim * delta
 
-    if len(win) == 3:
-        a.append(sum(win))
+    if cmd == "down":
+        aim += delta
 
-last = 999999999
-increase = 0
+    if cmd == "up":
+        aim -= delta 
 
-for c in a:
 
-    if c > last:
-        increase += 1
-
-    last = c
-
-print("increase", increase)
+print("depth", depth)
+print("forward", forward)
+print("product", forward*depth)
