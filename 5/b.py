@@ -2,12 +2,12 @@ import re
 import json
 import copy
 #import numpy as np
-from collections import deque
+import collections
 import math
 
 # useful problem state
 lines = []
-canvas = []
+canvas = collections.defaultdict(int)
 
 class Line:
     def __init__(self,x1,y1,x2,y2):
@@ -33,7 +33,7 @@ class Line:
         cx = self.x1
         cy = self.y1
         for i in range(self.length):
-            canvas[cx][cy] += 1
+            canvas[(cx,cy)] += 1
             cx += dx
             cy += dy
 
@@ -43,9 +43,6 @@ class Line:
 def parse():
     data = open("data.txt", "r")
     rlines = data.readlines()
-
-    maxx = 0
-    maxy = 0
 
     for line in rlines:
         s = line.split(" -> ")
@@ -61,41 +58,16 @@ def parse():
 
         lines.append(l)
 
-        if x1 > maxx:
-            maxx = x1
-        if x2 > maxx:
-            maxx = x2
-        if y1 > maxy:
-            maxy = y1
-        if y2 > maxy:
-            maxy = y2
-    
-    maxx += 1
-    maxy += 1
-
-    for x in range(maxx):
-        col = []
-        for y in range(maxy):
-            col.append(0)
-        canvas.append(col)
-
-    print("canvas", maxx, maxy)
-
 def main():
     parse()
 
     for l in lines:
         l.draw()
 
-    print("len lines", len(lines))
-    print("lines", lines)
-    print(canvas)
-
     count = 0
-    for c in canvas:
-        for e in c:
-            if e >= 2:
-                count += 1
+    for k,v in canvas.items():
+        if v >= 2:
+            count += 1
 
     print("count", count)
 
