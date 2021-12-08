@@ -64,73 +64,62 @@ def get_unknown_set(l, length, match_set):
     raise "fail"
 
 
+# returns array[digit]=set(unknown segments)
 def solve(l):
-    print("solve", l)
-
-    # initially anything is possible
-    can = {}
-    for c in "abcedfg":
-        can[c] = set()
-        for i in "abcdefg":
-            can[c].add(i)
-
-    # filter candidates against known counts
-    for i in [1,4,7,8]:
-        k = known[i]
-        u = get_unknown(l, len(k))
-        for c in k:
-            can[c] = can[c].intersection(u)
-
-    print("known length filter\n", can)
-
-    # insight: 7 has 1 extra segment on 1
-    # subtract 1 candidates from 7
-    unknown1 = get_unknown(l, len(known[1]))
-    unknown7 = get_unknown(l, len(known[7]))
-    unknownA = unknown7.difference(unknown1)
-    can["a"] = set(unknownA)
-    for c in "bcdefg":
-        can[c] = can[c].difference(can["a"])
-
-    print("7 contains 1 filter\n", can)
-
-    # insight: 3 has len=5 and both of 1's segments
-    unknown3 = get_unknown_set(l, len(known[3]), unknown1)
-    for c in known[3]:
-        can[c] = can[c].intersection(unknown3)
-
-    print("3 has len=5 and contains 1\n", can)
-
-    # filter: 2, 3 and 5 are length 5
-    unknown235 = get_unknown_multi(l, 5)
-    for c in known[2]:
-        can[c] = can[c].intersection(unknown235)
-    for c in known[3]:
-        can[c] = can[c].intersection(unknown235)
-    for c in known[5]:
-        can[c] = can[c].intersection(unknown235)
-
-    #print("len=5 235 club\n", can)
-
-    # filter 2: 0,6,9 are length 6
-    unknown069 = get_unknown_multi(l, 6)
-    for c in known[0]:
-        can[c] = can[c].intersection(unknown069)
-    for c in known[6]:
-        can[c] = can[c].intersection(unknown069)
-    for c in known[9]:
-        can[c] = can[c].intersection(unknown069)
-
-    #print("len=6 069 club\n", can)
-
-    # now make some guesses based on candidate segments
+    # array of sets of unknown segments
+    unknown = []
     for i in range(10):
-        megaset = set()
-        for c in known[i]:
-            megaset = megaset.union(can[c])
+        unknown.append(set())
 
-        print("megaset", i, megaset)
+    # unique length sets
+    for i in [1,4,7,8]:
+        unknown[i] = get_unknown(l, len(known[i]))
 
+    # length 6 club: 0, 6, 9
+    for e in l:
+        if len(e)==6:
+            s = set()
+            for c in e:
+                s.add(c)
+
+            if s.issuperset(unknown[1]):
+                if s.issuperset(unknown[4]):
+                    # 9
+                    unknown[9] = s
+                else:
+                    unknown[0] = s
+            else:
+                unknown[6] = s
+
+    # length 5 club: 2,3,5
+    # insight: 3 has len=5 and both of 1's segments
+    unknown[3] = get_unknown_set(l, len(known[3]), unknown[1])
+    for e in l:
+        if len(e)==5:
+            s = set()
+            for c in e:
+                s.add(c)
+
+            if s != unknown[3]:
+                if unknown[6].issuperset(s):
+                    unknown[5] = s
+                else:
+                    unknown[2] = s
+
+    return unknown
+
+# give unknown from solve, and segments string
+# returns int
+def lookup(unknown, segments):
+    s = set()
+    for c in segments:
+        s.add(c)
+
+    for i in range(10):
+        if s == unknown[i]:
+            return i
+
+    raise "fail"
 
 def parse():
     data = open("data.txt", "r")
@@ -140,14 +129,17 @@ def parse():
     for line in rlines:
         s = line.split("|")
         l = s[0].strip().split(" ")
-        solve(l)
+        unknown = solve(l)
         r = s[1].strip().split(" ")
 
-        #for e in r:
-        #    if len(e) in [2, 3, 4, 7]:
-        #        c += 1
+        rhs = 0
 
-    #print("c", c)
+        for e in r:
+            rhs = rhs * 10 + lookup(unknown, e)
+
+        c += rhs
+
+    print("c", c)
 
 def main():
     parse()
