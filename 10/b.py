@@ -6,53 +6,70 @@ import collections
 import math
 
 # useful problem state
-floor = collections.defaultdict(lambda: 9)
 
-# returns the recursive basin size at (x,y)
-# destructively: replacing visited cells with 9
-def recurse(x,y):
-    print("recurse", x, y)
-    c = 1
-    floor[(x,y)] = 9
+def openb(a):
+    return a in "([{<"
 
-    points = [ (x-1,y), (x+1,y), (x,y-1), (x,y+1)]
-    for p in points:
-        if floor[p] != 9:
-            c += recurse(*p)
+def close(a):
+    return a in ")]}>"
 
-    return c
+def balance(a):
+    if a == "(":
+        return ")"
+    if a == "[":
+        return "]"
+    if a == "{":
+        return "}"
+    if a == "<":
+        return ">"
+
+    raise "fail"
+
+def score(a):
+    if a == ")":
+        return 1
+    if a == "]":
+        return 2
+    if a == "}":
+        return 3
+    if a == ">":
+        return 4
+
+    raise "fail"
+
 
 def parse():
     data = open("data.txt", "r")
     rlines = data.readlines()
 
-    y = 0
+    scores = []
+
     for line in rlines:
         line = line.strip()
-        x = 0
+        stack = []
+        skip = False
         for c in line:
-            floor[(x,y)] = int(c)
-            x += 1
-        y += 1
+            if openb(c):
+                stack.append(c)
+            else:
+                if balance(stack[-1]) == c:
+                    stack.pop()
+                else:
+                    skip = True
+                    break
 
-    maxx = x 
-    maxy = y 
+        if skip:
+            continue
 
-    basin = []
-    #for y in range(maxy):
-    #    for x in range(maxx):
-    for y in range(maxy):
-        for x in range(maxx):
-            target = floor[(x,y)]
-            if target != 9:
-                size = recurse(x,y)
-                basin.append(size)
+        local_score = 0
+        stack.reverse()
+        for s in stack:
+            local_score = 5 * local_score + score(balance(s))
 
-    basin.sort(reverse=True)
+        scores.append(local_score)
 
-    print("basin", basin)
-
-    print("basinprod", basin[0] * basin[1] * basin[2])
+    scores.sort()
+    print("middle", scores[len(scores)//2])
 
 
 def main():
