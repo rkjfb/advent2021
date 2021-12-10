@@ -1,42 +1,13 @@
-import re
-import json
-import copy
-#import numpy as np
-import collections
-import math
-
 # useful problem state
 
-def openb(a):
-    return a in "([{<"
-
-def close(a):
-    return a in ")]}>"
-
-def balance(a):
-    if a == "(":
-        return ")"
-    if a == "[":
-        return "]"
-    if a == "{":
-        return "}"
-    if a == "<":
-        return ">"
-
-    raise "fail"
-
-def score(a):
-    if a == ")":
-        return 1
-    if a == "]":
-        return 2
-    if a == "}":
-        return 3
-    if a == ">":
-        return 4
-
-    raise "fail"
-
+bal = { "(" : ")",
+        "[" : "]",
+        "{" : "}",
+        "<" : ">"}
+score = { ")" : 1,
+        "]" : 2,
+        "}" : 3,
+        ">" : 4}
 
 def parse():
     data = open("data.txt", "r")
@@ -49,10 +20,10 @@ def parse():
         stack = []
         skip = False
         for c in line:
-            if openb(c):
+            if c in bal:
                 stack.append(c)
             else:
-                if balance(stack[-1]) == c:
+                if bal[stack[-1]] == c:
                     stack.pop()
                 else:
                     skip = True
@@ -64,7 +35,7 @@ def parse():
         local_score = 0
         stack.reverse()
         for s in stack:
-            local_score = 5 * local_score + score(balance(s))
+            local_score = 5 * local_score + score[bal[s]]
 
         scores.append(local_score)
 
