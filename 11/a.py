@@ -40,7 +40,7 @@ def parse():
 
     flashcount = 0
 
-    for i in range(1,20+1):
+    for i in range(1,100+1):
 
         # round start, everyone gets incremented
         flash = []
@@ -58,6 +58,10 @@ def parse():
 
             for x in range(-1, 2):
                 for y in range(-1, 2):
+                    if ix+x < 0 or ix+x >= maxx:
+                        continue
+                    if iy+y < 0 or iy+y >= maxy:
+                        continue
                     floor[(ix+x,iy+y)] += 1
                     if floor[(ix+x,iy+y)] > 9 and not (ix+x, iy+y) in seen:
                         flash.append((ix+x,iy+y))
@@ -72,13 +76,13 @@ def parse():
                     floor[(x,y)] = 0
 
         # show what happened
-        printfloor = True
+        printfloor = False
         if printfloor:
 
             print("step", i)
-            for y in range(maxy):
+            for y in range(-1,maxy+1):
                 r = ""
-                for x in range(maxx):
+                for x in range(-1,maxx+1):
                     r += str(floor[(x,y)])
                 print(r)
             print()
