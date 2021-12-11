@@ -6,7 +6,7 @@ import collections
 import math
 
 # useful problem state
-floor = collections.defaultdict(lambda: 9)
+floor = collections.defaultdict(lambda: 0)
 
 # returns the recursive basin size at (x,y)
 # destructively: replacing visited cells with 9
@@ -38,21 +38,64 @@ def parse():
     maxx = x 
     maxy = y 
 
-    basin = []
-    #for y in range(maxy):
-    #    for x in range(maxx):
-    for y in range(maxy):
-        for x in range(maxx):
-            target = floor[(x,y)]
-            if target != 9:
-                size = recurse(x,y)
-                basin.append(size)
+    flashcount = 0
 
-    basin.sort(reverse=True)
+    i = 1
+    while True:
 
-    print("basin", basin)
+        # round start, everyone gets incremented
+        flash = []
+        for y in range(maxy):
+            for x in range(maxx):
+                floor[(x,y)] += 1
 
-    print("basinprod", basin[0] * basin[1] * basin[2])
+                if floor[(x,y)] > 9:
+                    flash.append((x,y))
+        seen = set(flash)
+
+        # chain flashes
+        while len(flash) > 0:
+            ix,iy = flash.pop()
+
+            for x in range(-1, 2):
+                for y in range(-1, 2):
+                    if ix+x < 0 or ix+x >= maxx:
+                        continue
+                    if iy+y < 0 or iy+y >= maxy:
+                        continue
+                    floor[(ix+x,iy+y)] += 1
+                    if floor[(ix+x,iy+y)] > 9 and not (ix+x, iy+y) in seen:
+                        flash.append((ix+x,iy+y))
+                        seen.add((ix+x, iy+y))
+
+        flashcount += len(seen)
+
+        # reset the flashes
+        for y in range(maxy):
+            for x in range(maxx):
+                if floor[(x,y)] > 9:
+                    floor[(x,y)] = 0
+
+        # show what happened
+        printfloor = False
+        if printfloor:
+
+            print("step", i)
+            for y in range(-1,maxy+1):
+                r = ""
+                for x in range(-1,maxx+1):
+                    r += str(floor[(x,y)])
+                print(r)
+            print()
+
+        if sum(floor.values())==0:
+            print("zeros at step", i)
+            break
+        
+        i += 1
+
+
+    print("flashcount", flashcount)
 
 
 def main():
