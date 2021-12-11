@@ -6,50 +6,36 @@ import collections
 import math
 
 # useful problem state
-floor = collections.defaultdict(lambda: 0)
-
-# returns the recursive basin size at (x,y)
-# destructively: replacing visited cells with 9
-def recurse(x,y):
-    print("recurse", x, y)
-    c = 1
-    floor[(x,y)] = 9
-
-    points = [ (x-1,y), (x+1,y), (x,y-1), (x,y+1)]
-    for p in points:
-        if floor[p] != 9:
-            c += recurse(*p)
-
-    return c
+floor = []
 
 def parse():
     data = open("data.txt", "r")
     rlines = data.readlines()
 
-    y = 0
     for line in rlines:
         line = line.strip()
-        x = 0
+        row = []
         for c in line:
-            floor[(x,y)] = int(c)
-            x += 1
-        y += 1
+            row.append(int(c))
+        floor.append(row)
 
-    maxx = x 
-    maxy = y 
+    # technically flipped
+    maxx = len(floor)
+    maxy = len(floor[0])
 
     flashcount = 0
 
     i = 1
-    while True:
+    #while True:
+    for i in range(2):
 
         # round start, everyone gets incremented
         flash = []
         for y in range(maxy):
             for x in range(maxx):
-                floor[(x,y)] += 1
+                floor[x][y] += 1
 
-                if floor[(x,y)] > 9:
+                if floor[x][y] > 9:
                     flash.append((x,y))
         seen = set(flash)
 
@@ -59,36 +45,35 @@ def parse():
 
             for x in range(-1, 2):
                 for y in range(-1, 2):
-                    if ix+x < 0 or ix+x >= maxx:
-                        continue
-                    if iy+y < 0 or iy+y >= maxy:
-                        continue
-                    floor[(ix+x,iy+y)] += 1
-                    if floor[(ix+x,iy+y)] > 9 and not (ix+x, iy+y) in seen:
-                        flash.append((ix+x,iy+y))
-                        seen.add((ix+x, iy+y))
+                    xx = ix+x
+                    yy = iy+y
+                    if 0 <= xx < maxx and 0 <= yy < maxy:
+                        floor[xx][yy] += 1
+                        if floor[xx][yy] > 9 and not (xx,yy) in seen:
+                            flash.append((xx,yy))
+                            seen.add((xx, yy))
 
         flashcount += len(seen)
 
         # reset the flashes
         for y in range(maxy):
             for x in range(maxx):
-                if floor[(x,y)] > 9:
-                    floor[(x,y)] = 0
+                if floor[x][y] > 9:
+                    floor[x][y] = 0
 
         # show what happened
-        printfloor = False
+        printfloor = True 
         if printfloor:
 
             print("step", i)
-            for y in range(-1,maxy+1):
+            for y in range(maxy):
                 r = ""
-                for x in range(-1,maxx+1):
-                    r += str(floor[(x,y)])
+                for x in range(maxx):
+                    r += str(floor[x][y])
                 print(r)
             print()
 
-        if sum(floor.values())==0:
+        if sum(sum(floor, []))==0:
             print("zeros at step", i)
             break
         
