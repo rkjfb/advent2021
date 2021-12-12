@@ -8,8 +8,8 @@ import math
 # useful problem state
 nodes = {}
 paths = 0
+# node we're currently giving a bonus visit to, if any
 bonus = None
-count = 0
 current_path = []
 
 class Node:
@@ -17,6 +17,7 @@ class Node:
         self.name = name
         self.next = []
         self.big = name.isupper()
+        # needs to be a count for bonus unwind case (2->1, still counts as visited for non-bonus purposes)
         self.visited = 0
 
     def __repr__(self):
@@ -25,33 +26,17 @@ class Node:
 def recurse(rec):
     global current_path
     global bonus
-    #print(len(current_path), "recurse", rec, current_path)
     if rec.name == "end":
         global paths
-        #print("end", paths, current_path)
         paths += 1
         return
 
-#    global count
-#    count += 1
-#    print("count", count)
-#    if count > 5000:
-#        return
-#
-#    if paths > 36:
-#        raise "something is wrong"
-#
-#    if len(current_path) > 10:
-#        raise "too deep"
-
     rec.visited += 1
     current_path.append(rec.name)
-    clear_bonus = False
     for n in rec.next:
-        global bonus
+        clear_bonus = False
         visit = n.big or n.visited == 0
         if not visit and not n.big and n.name not in ["start", "end"] and bonus == None:
-            #print("*** bonus recurse", n, len(current_path))
             visit = True
             bonus = n
             clear_bonus = True
@@ -60,7 +45,6 @@ def recurse(rec):
             recurse(n)
 
         if clear_bonus:
-            #print("*** clear bonus", bonus, len(current_path))
             bonus = None
 
     rec.visited -= 1
