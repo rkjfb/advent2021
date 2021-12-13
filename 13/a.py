@@ -47,10 +47,34 @@ def fold(instr):
 
     grid = newgrid
 
+def draw():
+    maxx = 0
+    maxy = 0
+    for x,y in grid:
+        if x > maxx:
+            maxx = x
+        if y > maxy:
+            maxy = y
+
+    maxx += 1
+    maxy += 1
+
+    for y in range(maxy):
+        row = ""
+        for x in range(maxx):
+            if (x,y) in grid:
+                row += "#"
+            else:
+                row += "."
+        print(row)
+
 def main():
     parse()
 
-    fold(split[0])
+    for f in split:
+        fold(f)
+
+    draw()
 
     print("dots", len(grid))
 
