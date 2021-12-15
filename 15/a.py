@@ -69,35 +69,50 @@ def mark():
     visited = set()
     distance[(maxx,maxy)] = grid[(maxx,maxy)]
 
-    for x in range(maxx,-1,-1):
-        for y in range(maxy,-1,-1):
+    frontier = set()
+    frontier.add((maxx,maxy))
 
-            poslist = []
+    while len(frontier) > 0:
 
-            if x+1 <= maxx:
-                poslist.append((x+1,y))
+        # choose the current minimum distance element
+        # todo: priority queue
+        min_distance = 999999
+        current = None
+        for e in frontier:
+            if distance[e] < min_distance:
+                current = e
+                min_distance = distance[e]
 
-            if x-1 >= 0:
-                poslist.append((x-1,y))
+        frontier.remove(current)
+        x,y = current
 
-            if y+1 <= maxy:
-                poslist.append((x,y+1))
+        poslist = []
 
-            if y-1 >= 0:
-                poslist.append((x,y-1))
+        if x+1 <= maxx:
+            poslist.append((x+1,y))
 
-            for pos in poslist:
-                if not pos in visited:
-                    distance[pos] = min(distance[pos], distance[(x,y)] + grid[pos])
+        if x-1 >= 0:
+            poslist.append((x-1,y))
 
-            visited.add((x,y))
+        if y+1 <= maxy:
+            poslist.append((x,y+1))
+
+        if y-1 >= 0:
+            poslist.append((x,y-1))
+
+        for pos in poslist:
+            if not pos in visited:
+                distance[pos] = min(distance[pos], distance[(x,y)] + grid[pos])
+                frontier.add(pos)
+
+        visited.add(current)
 
 def main():
     parse()
-    #expand()
+    expand()
     mark()
-    print(grid)
-    print(distance)
+    #print(grid)
+    #print(distance)
 
 
     print("mincost", distance[(0,0)]-topleft)
