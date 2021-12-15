@@ -7,6 +7,7 @@ import math
 
 # useful problem state
 grid = collections.defaultdict(int)
+distance = collections.defaultdict(lambda:99999999)
 topleft = 9999
 maxx = 0
 maxy = 0
@@ -39,6 +40,8 @@ def parse():
 # expands grid by 5x5
 def expand():
     global grid
+    global maxx
+    global maxy
     newgrid = collections.defaultdict(int)
     width = maxx+1
     height = maxy+1
@@ -57,33 +60,47 @@ def expand():
                     newgrid[(newx,newy)] = newvalue
 
     grid = newgrid
+    maxx = (maxx+1)*5-1
+    maxy = (maxy+1)*5-1
 
 
 # does a djikstra'ish mark from bot right to top left of cumulative path
 def mark():
-    megamaxx = (maxx+1)*5-1
-    megamaxy = (maxy+1)*5-1
-    for x in range(megamaxx,-1,-1):
-        for y in range(megamaxy,-1,-1):
-            smaller = 0
-            if x == megamaxx and y == megamaxy:
-                smaller = 0
-            elif x == megamaxx:
-                smaller = grid[(x,y+1)]
-            elif y == megamaxy:
-                smaller = grid[(x+1,y)]
-            else:
-                smaller = min(grid[(x,y+1)], grid[(x+1,y)])
+    visited = set()
+    distance[(maxx,maxy)] = grid[(maxx,maxy)]
 
-            grid[(x,y)] += smaller
+    for x in range(maxx,-1,-1):
+        for y in range(maxy,-1,-1):
+
+            poslist = []
+
+            if x+1 <= maxx:
+                poslist.append((x+1,y))
+
+            if x-1 >= 0:
+                poslist.append((x-1,y))
+
+            if y+1 <= maxy:
+                poslist.append((x,y+1))
+
+            if y-1 >= 0:
+                poslist.append((x,y-1))
+
+            for pos in poslist:
+                if not pos in visited:
+                    distance[pos] = min(distance[pos], distance[(x,y)] + grid[pos])
+
+            visited.add((x,y))
 
 def main():
     parse()
-    expand()
-    #print(grid)
+    #expand()
     mark()
+    print(grid)
+    print(distance)
 
-    print("mincost", grid[(0,0)]-topleft)
+
+    print("mincost", distance[(0,0)]-topleft)
 
 main()
 
