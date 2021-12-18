@@ -22,6 +22,36 @@ class Node:
 
         return 3*left + 2*right
 
+    # walk tree, inorder, calling func with node and data
+    # func returns False to end walk
+    def traverse(self, func, data, depth = 1, reverse = False):
+        visit = []
+        if isinstance(self.left, Node):
+            visit.append(self.left)
+        else:
+            visit.append(None)
+
+        if isinstance(self.right, Node):
+            visit.append(self.right)
+        else:
+            visit.append(None)
+
+        if reverse:
+            visit.reverse()
+
+        if visit[0] != None:
+            if not visit[0].traverse(func, data, depth+1, reverse):
+                return False
+
+        if not func(self, data, depth):
+            return False
+
+        if visit[1] != None:
+            if not visit[1].traverse(func, data, depth+1, reverse):
+                return False
+
+        return True
+
     def __repr__(self):
         return "[" + str(self.left) + "," + str(self.right) + "]"
 
@@ -63,22 +93,13 @@ def recurse_parse(s):
 
     return n,s
 
-# returns node to explode or None
-def find_explode(n,depth):
+# callback for finding first depth=5 node
+def find_explode(n, hit_list, depth):
     if depth == 5:
-        return n
+        hit_list.append(n)
+        return False
 
-    if isinstance(n.left, Node):
-        hit = find_explode(n.left, depth+1)
-        if hit != None:
-            return hit
-
-    if isinstance(n.right, Node):
-        hit = find_explode(n.right, depth+1)
-        if hit != None:
-            return hit
-
-    return None
+    return True
 
 explode_prev = None
 explode_prev_done = False
@@ -119,26 +140,55 @@ def explode_walk(n, hit, leftval, rightval):
     if isinstance(n.right, Node):
         explode_walk(n.right, hit, leftval, rightval)
 
+
+# callback for explode next add
+def explode_next(n, state, depth):
+
+    if state["target"] == n:
+        state["hitnext"] = True
+        return True
+
+    if state["hitnext"]:
+        if isinstance(n.left, int):
+            n.left += state["value"]
+            return False
+        elif isinstance(n.right, int):
+            n.right += state["value"]
+            return False
+
+    return True
+
+# callback for explode next add
+def explode_prev(n, state, depth):
+
+    if state["target"] == n:
+        state["hitprev"] = True
+        return True
+
+    if state["hitprev"]:
+        if isinstance(n.right, int):
+            n.right += state["value"]
+            return False
+        elif isinstance(n.left, int):
+            n.left += state["value"]
+            return False
+
+    return True
+
 # returns True if an explode occured
 def explode(n):
 
-    hit = find_explode(n, 1)
-    if hit == None:
+    hit_list = []
+    n.traverse(find_explode, hit_list)
+    if len(hit_list) == 0:
         return False
+    hit = hit_list[0]
 
-    if not isinstance(hit.left, int):
-        raise "expected hit.left to be int"
-    if not isinstance(hit.right, int):
-        raise "expected hit.right to be int"
+    state = { "target" : hit, "hitnext" : False, "value": hit.right}
+    n.traverse(explode_next, state)
 
-    # this is disgusting.
-    global explode_prev
-    explode_prev = None
-    global explode_prev_done
-    explode_prev_done = False
-    global explode_hit_next
-    explode_hit_next = False
-    explode_walk(n, hit, hit.left, hit.right)
+    state = { "target" : hit, "hitprev" : False, "value": hit.left}
+    n.traverse(explode_prev, state, reverse=True)
 
     if hit.parent.left == hit:
         hit.parent.left = 0
@@ -147,23 +197,6 @@ def explode(n):
         hit.parent.right = 0
 
     return True
-
-# returns node 
-def find_explode(n,depth):
-    if depth == 5:
-        return n
-
-    if isinstance(n.left, Node):
-        hit = find_explode(n.left, depth+1)
-        if hit != None:
-            return hit
-
-    if isinstance(n.right, Node):
-        hit = find_explode(n.right, depth+1)
-        if hit != None:
-            return hit
-
-    return None
 
 # returns True if a split occured
 def split(n):
@@ -238,8 +271,6 @@ def test_explode_instance(test, expect):
     explode(n)
     if str(n) != expect:
         print("failed explode test", test, "got", n, "expected", expect)
-    else:
-        print("pass", test)
 
 def test_explode():
     test_explode_instance("[[[[[9,8],1],2],3],4]", "[[[[0,9],2],3],4]") # (the 9 has no regular number to its left, so it is not added to any regular number).
@@ -253,8 +284,6 @@ def test_magnitude_instance(test, val):
     mag = n.magnitude()
     if str(mag) != val:
         print("failed magnitude", test, "got", mag, "expected", val)
-    else:
-        print("pass", test)
 
 def test_magnitude():
     test_magnitude_instance("[[1,2],[[3,4],5]]", "143")
@@ -278,10 +307,11 @@ def max_pair():
             if result_mag > maxpair:
                 maxpair = result_mag
     print("maxpair", maxpair)
+    assert maxpair == 4583
 
 def main():
-    #test_explode()
-    #test_magnitude()
+    test_explode()
+    test_magnitude()
     parse()
     max_pair()
 
