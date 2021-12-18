@@ -26,6 +26,7 @@ class Node:
         return "[" + str(self.left) + "," + str(self.right) + "]"
 
 # useful problem state
+rows = []
 
 # returns a Node, remaining s
 def recurse_parse(s):
@@ -220,6 +221,8 @@ def add(left, right):
     return root
 
 def parse():
+    global rows
+
     data = open("data.txt", "r")
     rlines = data.readlines()
 
@@ -227,18 +230,7 @@ def parse():
 
     for line in rlines:
         line = line.strip()
-
-        new_node,s = recurse_parse(line)
-
-        if current != None:
-            current = add(current, new_node)
-        else:
-            current = new_node
-
-        print("current", current, "magnitude", current.magnitude())
-
-        if s != "":
-            raise "left overs"
+        rows.append(line)
 
 
 def test_explode_instance(test, expect):
@@ -272,10 +264,26 @@ def test_magnitude():
     test_magnitude_instance("[[[[5,0],[7,4]],[5,5]],[6,6]]", "1137")
     test_magnitude_instance("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]", "3488")
 
+def max_pair():
+    maxpair = 0
+    for i in range(len(rows)):
+        for j in range(len(rows)):
+            if i == j:
+                continue
+
+            a,s = recurse_parse(rows[i])
+            b,s = recurse_parse(rows[j])
+            result = add(a,b)
+            result_mag = result.magnitude()
+            if result_mag > maxpair:
+                maxpair = result_mag
+    print("maxpair", maxpair)
+
 def main():
     #test_explode()
     #test_magnitude()
     parse()
+    max_pair()
 
 main()
 
