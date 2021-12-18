@@ -35,7 +35,7 @@ def fire(dx, dy):
 
     loop_maxy = -9999
 
-    while cx < x2 and cy >= y2:
+    while cx <= max(x1,x2) and cy >= min(y1,y2):
         cx += dx
         cy += dy
 
@@ -47,11 +47,12 @@ def fire(dx, dy):
         if cy > loop_maxy:
             loop_maxy = cy
 
+        #print(cx,cy)
+
         if x1<=cx<=x2 and y1<=cy<=y2:
             global maxy
             if loop_maxy > maxy:
                 maxy = loop_maxy
-                print(dx,dy, "new maxy", maxy)
             return True
 
     return False
@@ -59,13 +60,18 @@ def fire(dx, dy):
 
 def main():
     parse()
+
+    count = 0
+    searchx = 10*abs(x2-x1)
+    searchy = 10*abs(y2-y1)
+    print("search", searchx, searchy)
     for x in range(10*abs(x2-x1)):
-        for y in range(10*abs(y2-y1)):
-            fire(x,y)
-    #print(fire(7,2))
-    #print(fire(6,3))
-    #print(fire(9,0))
-    #print(fire(17,-4))
+        for y in range(-searchy, searchy):
+            if fire(x,y):
+                print(str(x) + "," + str(y))
+                count += 1
+
+    print("count", count)
 
 main()
 
