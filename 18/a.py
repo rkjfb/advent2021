@@ -167,6 +167,11 @@ def find_explode(n,depth):
 # returns True if a split occured
 def split(n):
 
+    if isinstance(n.left, Node):
+        hit = split(n.left)
+        if hit:
+            return True
+
     if isinstance(n.left, int) and n.left >= 10:
         new_node = Node()
         new_node.left = int(math.floor(n.left / 2))
@@ -182,11 +187,6 @@ def split(n):
         new_node.parent = n
         n.right = new_node
         return True
-
-    if isinstance(n.left, Node):
-        hit = split(n.left)
-        if hit:
-            return True
 
     if isinstance(n.right, Node):
         hit = split(n.right)
