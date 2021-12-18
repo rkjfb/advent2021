@@ -136,16 +136,62 @@ def explode(n):
 
     return True
 
+# returns node 
+def find_explode(n,depth):
+    if depth == 5:
+        return n
+
+    if isinstance(n.left, Node):
+        hit = find_explode(n.left, depth+1)
+        if hit != None:
+            return hit
+
+    if isinstance(n.right, Node):
+        hit = find_explode(n.right, depth+1)
+        if hit != None:
+            return hit
+
+    return None
+
 # returns True if a split occured
 def split(n):
-    return
+
+    if isinstance(n.left, int) and n.left >= 10:
+        new_node = Node()
+        new_node.left = int(math.floor(n.left / 2))
+        new_node.right = int(math.ceil(n.left / 2))
+        new_node.parent = n
+        n.left = new_node
+        return True
+
+    if isinstance(n.right, int) and n.right >= 10:
+        new_node = Node()
+        new_node.left = int(math.floor(n.right / 2))
+        new_node.right = int(math.ceil(n.right / 2))
+        new_node.parent = n
+        n.right = new_node
+        return True
+
+    if isinstance(n.left, Node):
+        hit = split(n.left)
+        if hit:
+            return True
+
+    if isinstance(n.right, Node):
+        hit = split(n.right)
+        if hit:
+            return True
+
+    return False
 
 # reduces n
 def reduce(n):
     while True:
         if explode(n):
+            print("explode", n)
             continue
         if split(n):
+            print("split  ", n)
             continue
 
         break
@@ -178,8 +224,11 @@ def parse():
         else:
             current = new_node
 
+        print("current", current)
+
         if s != "":
             raise "left overs"
+
 
 def test_explode_instance(test, expect):
     n,s = recurse_parse(test)
@@ -197,8 +246,8 @@ def test_explode():
     test_explode_instance("[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]", "[[3,[2,[8,0]]],[9,[5,[7,0]]]]")
 
 def main():
-    #parse()
-    test_explode()
+    #test_explode()
+    parse()
 
 main()
 
