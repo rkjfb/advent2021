@@ -11,6 +11,17 @@ class Node:
         self.right = None
         self.parent = None
 
+    def magnitude(self):
+        left = self.left
+        if isinstance(self.left, Node):
+            left = self.left.magnitude()
+
+        right = self.right
+        if isinstance(self.right, Node):
+            right = self.right.magnitude()
+
+        return 3*left + 2*right
+
     def __repr__(self):
         return "[" + str(self.left) + "," + str(self.right) + "]"
 
@@ -188,10 +199,10 @@ def split(n):
 def reduce(n):
     while True:
         if explode(n):
-            print("explode", n)
+            #print("explode", n)
             continue
         if split(n):
-            print("split  ", n)
+            #print("split  ", n)
             continue
 
         break
@@ -224,7 +235,7 @@ def parse():
         else:
             current = new_node
 
-        print("current", current)
+        print("current", current, "magnitude", current.magnitude())
 
         if s != "":
             raise "left overs"
@@ -245,8 +256,25 @@ def test_explode():
     test_explode_instance("[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]", "[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]") # (the pair [3,2] is unaffected because the pair [7,3] is further to the left; [3,2] would explode on the next action).
     test_explode_instance("[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]", "[[3,[2,[8,0]]],[9,[5,[7,0]]]]")
 
+def test_magnitude_instance(test, val):
+    n,s = recurse_parse(test)
+    mag = n.magnitude()
+    if str(mag) != val:
+        print("failed magnitude", test, "got", mag, "expected", val)
+    else:
+        print("pass", test)
+
+def test_magnitude():
+    test_magnitude_instance("[[1,2],[[3,4],5]]", "143")
+    test_magnitude_instance("[[[[0,7],4],[[7,8],[6,0]]],[8,1]]", "1384")
+    test_magnitude_instance("[[[[1,1],[2,2]],[3,3]],[4,4]]", "445")
+    test_magnitude_instance("[[[[3,0],[5,3]],[4,4]],[5,5]]", "791")
+    test_magnitude_instance("[[[[5,0],[7,4]],[5,5]],[6,6]]", "1137")
+    test_magnitude_instance("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]", "3488")
+
 def main():
     #test_explode()
+    #test_magnitude()
     parse()
 
 main()
