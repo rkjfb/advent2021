@@ -71,6 +71,7 @@ def find_explode(n,depth):
 explode_prev = None
 explode_prev_done = False
 explode_hit_next = False
+# inorder traversal
 def explode_walk(n, hit, leftval, rightval):
     global explode_prev
     global explode_prev_done
@@ -118,6 +119,13 @@ def explode(n):
     if not isinstance(hit.right, int):
         raise "expected hit.right to be int"
 
+    # this is disgusting.
+    global explode_prev
+    explode_prev = None
+    global explode_prev_done
+    explode_prev_done = False
+    global explode_hit_next
+    explode_hit_next = False
     explode_walk(n, hit, hit.left, hit.right)
 
     if hit.parent.left == hit:
@@ -175,7 +183,7 @@ def parse():
 
 def test_explode_instance(test, expect):
     n,s = recurse_parse(test)
-    reduce(n)
+    explode(n)
     if str(n) != expect:
         print("failed explode test", test, "got", n, "expected", expect)
     else:
