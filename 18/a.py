@@ -158,21 +158,16 @@ def explode(n):
 
     return True
 
-# returns True if a split occured
-def split(n):
-
-    if isinstance(n.left, Node):
-        hit = split(n.left)
-        if hit:
-            return True
-
+# callback for split
+def find_split(n, hit_list, depth):
     if isinstance(n.left, int) and n.left >= 10:
         new_node = Node()
         new_node.left = int(math.floor(n.left / 2))
         new_node.right = int(math.ceil(n.left / 2))
         new_node.parent = n
         n.left = new_node
-        return True
+        hit_list.append(True)
+        return False
 
     if isinstance(n.right, int) and n.right >= 10:
         new_node = Node()
@@ -180,12 +175,17 @@ def split(n):
         new_node.right = int(math.ceil(n.right / 2))
         new_node.parent = n
         n.right = new_node
-        return True
+        hit_list.append(True)
+        return False
 
-    if isinstance(n.right, Node):
-        hit = split(n.right)
-        if hit:
-            return True
+    return True
+# returns True if a split occured
+def split(n):
+    hit_list = []
+    n.traverse(find_split, hit_list)
+
+    if len(hit_list) > 0 and hit_list[0]:
+        return True
 
     return False
 
