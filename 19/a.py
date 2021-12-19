@@ -11,7 +11,9 @@ scanner = []
 rotations = []
 
 class Scanner:
-    def __init__(self, beacons):
+    def __init__(self, name, beacons):
+        self.name = name
+
         # original beacons in scanner space, sorted by z,y,x
         for i in range(2,-1,-1):
             beacons = beacons[beacons[:,i].argsort()]
@@ -26,6 +28,12 @@ class Scanner:
         # Offset used to get beacons into root coordinate system
         self.root_offset = np.array([-9999, -9999, -9999])
 
+        if self.name == "0":
+            self.root_beacons = self.beacons
+            self.root_offset = np.array([0,0,0])
+
+    def __repr__(self):
+        return self.name + ":" + str(self.beacons[0])
 
     # build all transformations of beacons, sorted by z,y,x
     def build_transformed(self):
@@ -47,20 +55,19 @@ class Scanner:
 
     # returns True, and updates root_beacons and root_offset
     def match(self, root_beacons):
-        for start_i in range(10):
+        len_root_beacons = len(root_beacons)
+        for start_i in range(17):
             for t in self.transformed:
-                for start_j in range(10):
+                for start_j in range(17):
                     offset = root_beacons[start_i] - t[start_j]
 
                     i = start_i 
                     j = start_j 
                     count = 0
-                    while i < len(root_beacons) and j < len(t) and count < 12:
+                    while i < len_root_beacons and j < len(t) and count < 12 and len_root_beacons-i+count>10:
                         b = t[j] + offset
                         if np.array_equal(root_beacons[i], b):
                             count += 1
-                            if count > 1:
-                                print(count)
                             i += 1
                             j += 1
                         # x
@@ -106,14 +113,14 @@ def parse():
 
         if line[1] == "-":
             if len(beacons) > 0:
-                scanner.append(Scanner(np.array(beacons)))
+                scanner.append(Scanner(str(len(scanner)), np.array(beacons)))
                 beacons = []
         else:
             s = line.split(",")
             l = [int(s[0]), int(s[1]), int(s[2])]
             beacons.append(np.array(l))
 
-    scanner.append(Scanner(np.array(beacons)))
+    scanner.append(Scanner(str(len(scanner)), np.array(beacons)))
 
 # builds the list of 24 unique rotations
 def build_rotations():
@@ -142,14 +149,54 @@ def build_rotations():
 
     assert len(rotations) == 24
 
+# builds the list of scanners that directly map to root scanner
+def match_scanners():
+    # scanners we haven't mapped into root space
+    outstanding = set(scanner)
+    outstanding.remove(scanner[0])
+    print("outstanding remove root", outstanding)
+
+    peers = [scanner[0]]
+
+    # start by comparing all scanners to root space
+#    root_beacons = scanner[0].beacons
+#    for s in scanner[1:]:
+#        if s.match(root_beacons):
+#            outstanding.remove(s)
+#
+#    print("outstanding remove root peers", outstanding)
+
+    while len(outstanding) > 0:
+        new_peers = []
+        for p in peers:
+            peer_beacons = p.root_beacons
+            for s in outstanding:
+                if s.match(peer_beacons):
+                    new_peers.append(s)
+
+        for p in new_peers:
+            outstanding.remove(p)
+
+        peers = new_peers
+
+        print("outstanding loop", outstanding)
+
+        if len(outstanding) > 0:
+            # assert we're making progress
+            assert len(new_peers) > 0
+
+def count_beacons():
+    uniq = set()
+    for s in scanner:
+        for b in s.root_beacons:
+            uniq.add(tuple(b.tolist()))
+
+    print("count beacons", len(uniq))
+
 def main():
     build_rotations()
     parse()
-    print("len scanner", len(scanner))
-
-    print("match", scanner[1].match(scanner[0].beacons))
-    print("scanner1 root_beacons", scanner[1].root_beacons)
-
-
+    match_scanners()
+    count_beacons()
 
 main()
