@@ -1,74 +1,38 @@
 import re
 import json
 import copy
-#import numpy as np
+import numpy as np
 import collections
 import math
+from scipy.spatial.transform import Rotation
 
 # useful problem state
 scanner = []
+rotations = []
+
 class Scanner:
     def __init__(self, beacons):
         self.beacons = beacons
-        self.deltas = []
-        self.compute_deltas()
+        self.transformed = []
+        self.build_transformed()
 
-    # computes positive deltas between sorted coordinates, per dimension
-    def compute_deltas(self):
-        # get a sorted list of 1 dimension
-        dim = [[],[]]
-        for x,y in self.beacons:
-            dim[0].append(x)
-            dim[1].append(y)
-        dim[0].sort()
-        dim[1].sort()
+    # build all transformations of beacons, sorted by z,y,x
+    def build_transformed(self):
+        for r in rotations:
+            result = []
+            for b in self.beacons:
+                result.append(np.dot(r,b))
 
-        # compute deltas
-        for i in range(len(dim)):
-            delta_dim = []
-            dc = dim[i][0]
-            for pos in dim[i][1:]:
-                delta_dim.append(pos - dc)
-                dc = pos
+            # sort by z,y,x
+            result = np.array(result)
+            for i in range(2,-1,-1):
+                # how this sort works:
+                # select column i
+                # sorts it, produces list of column indices
+                # select columns in index order
+                result = result[result[:,i].argsort()]
 
-            self.deltas.append(delta_dim)
-
-    # matches other deltas, against all deltas for all dimensions on this scanner
-    def match_deltas(self, other):
-        # todo: need to pick a few starting candidates from each side and score individually
-
-        # count of matches
-        count = [0,0]
-
-        for i in range(len(self.deltas)):
-            lhs = self.deltas[i]
-            rhs = other.deltas[i]
-
-            # current indices being compared
-            left_i = 0
-            right_i = 0
-
-            while left_i < len(lhs) and right_i < len(rhs):
-                if lhs[left_i] == rhs[right_i]:
-                    count[i] += 1
-                    left_i += 1
-                    right_i += 1
-
-                # todo: handle case where there are bonus points: sum deltas, max lookahead distance, only increment 1 index
-
-            # todo: repeat for permutations of other deltas
-            # todo: note that one of the permutations should be delta list reversed
-            # ensure len(permutations) == 24
-
-        # todo: column permutations
-
-        # todo: imagine a perfect 1:1 match, with same orientation..
-        if count == [2,2]:
-            xl,yl = self.beacons[0]
-            xr,yr = self.beacons[1]
-            transform = (xl -xr, yl - yr)
-
-        return count, transform
+            self.transformed.append(result)
 
 def parse():
     global scanner
@@ -91,14 +55,42 @@ def parse():
                 beacons = []
         else:
             s = line.split(",")
-            beacons.append((int(s[0]),int(s[1])))
+            l = [int(s[0]), int(s[1]), int(s[2])]
+            beacons.append(np.array(l))
 
-    scanner.append(Scanner(beacons))
+    scanner.append(Scanner(np.array(beacons)))
+
+# builds the list of 24 unique rotations
+def build_rotations():
+    global rotations
+
+    # produce all x,y,z rotations, convert to matrix, shove in, and out of set
+    uniq = set()
+    theta_list = [0, 90, 180, 270]
+
+    result = []
+    for x in theta_list:
+        rx = Rotation.from_rotvec(x * np.array([1,0,0]), degrees=True)
+        for y in theta_list:
+            ry = Rotation.from_rotvec(y * np.array([0,1,0]), degrees=True)
+            for z in theta_list:
+                rz = Rotation.from_rotvec(z * np.array([0,0,1]), degrees=True)
+                rfinal = rx * ry * rz
+                m = rfinal.as_matrix().round().flatten()
+                t = tuple(m.tolist())
+                uniq.add(t)
+
+    for t in uniq:
+        l = list(t)
+        a = np.array(l).reshape(3,3)
+        rotations.append(a)
+
+    assert len(rotations) == 24
 
 def main():
+    build_rotations()
     parse()
-    print(scanner)
-
-    print("scan match count", scanner[0].match_deltas(scanner[1]))
+    print("len scanner", len(scanner))
+    print("scanner1.transformed", scanner[1].transformed)
 
 main()
