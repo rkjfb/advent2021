@@ -16,47 +16,59 @@ class Scanner:
     # computes positive deltas between sorted coordinates, per dimension
     def compute_deltas(self):
         # get a sorted list of 1 dimension
-        dim = []
+        dim = [[],[]]
         for x,y in self.beacons:
-            dim.append(x)
-        dim.sort()
+            dim[0].append(x)
+            dim[1].append(y)
+        dim[0].sort()
+        dim[1].sort()
 
         # compute deltas
-        delta_dim = []
-        dc = dim[0]
-        for i in dim[1:]:
-            delta_dim.append(i - dc)
-            dc = i
+        for i in range(len(dim)):
+            delta_dim = []
+            dc = dim[i][0]
+            for pos in dim[i][1:]:
+                delta_dim.append(pos - dc)
+                dc = pos
 
-        self.deltas.append(delta_dim)
+            self.deltas.append(delta_dim)
 
-        # todo: repeat for other dimensions
-
-    # matches rhs delta (for a single dimension), against all deltas for all dimensions on this scanner
+    # matches other deltas, against all deltas for all dimensions on this scanner
     def match_deltas(self, other):
         # todo: need to pick a few starting candidates from each side and score individually
 
-        lhs = self.deltas[0]
-        rhs = other.deltas[0]
-
-        # current indices being compared
-        left_i = 0
-        right_i = 0
-
         # count of matches
-        count = 0 
+        count = [0,0]
 
-        while left_i < len(lhs) and right_i < len(rhs):
-            if lhs[left_i] == rhs[right_i]:
-                count += 1
-                left_i += 1
-                right_i += 1
+        for i in range(len(self.deltas)):
+            lhs = self.deltas[i]
+            rhs = other.deltas[i]
 
-            # todo: handle case where there are bonus points: sum deltas, max lookahead distance, only increment 1 index
+            # current indices being compared
+            left_i = 0
+            right_i = 0
 
-        # todo: repeat for other deltas on this scanner
+            while left_i < len(lhs) and right_i < len(rhs):
+                if lhs[left_i] == rhs[right_i]:
+                    count[i] += 1
+                    left_i += 1
+                    right_i += 1
 
-        return count
+                # todo: handle case where there are bonus points: sum deltas, max lookahead distance, only increment 1 index
+
+            # todo: repeat for permutations of other deltas
+            # todo: note that one of the permutations should be delta list reversed
+            # ensure len(permutations) == 24
+
+        # todo: column permutations
+
+        # todo: imagine a perfect 1:1 match, with same orientation..
+        if count == [2,2]:
+            xl,yl = self.beacons[0]
+            xr,yr = self.beacons[1]
+            transform = (xl -xr, yl - yr)
+
+        return count, transform
 
 def parse():
     global scanner
