@@ -6,21 +6,20 @@ import collections
 import math
 
 class Node:
-    def __init__(self):
-        self.left = None
-        self.right = None
+    def __init__(self, left = None, right = None):
+        self.left = left
+        self.right = right
         self.parent = None
 
-    def magnitude(self):
-        left = self.left
-        if isinstance(self.left, Node):
-            left = self.left.magnitude()
+    def set_left(self, left):
+        self.left = left
+        if isinstance(left, Node):
+            left.parent = self
 
-        right = self.right
-        if isinstance(self.right, Node):
-            right = self.right.magnitude()
-
-        return 3*left + 2*right
+    def set_right(self, right):
+        self.right = right
+        if isinstance(right, Node):
+            right.parent = self
 
     # walk tree, inorder, calling func with node and data
     # func returns False to end walk
@@ -52,6 +51,18 @@ class Node:
 
         return True
 
+    def magnitude(self):
+        left = self.left
+        if isinstance(self.left, Node):
+            left = self.left.magnitude()
+
+        right = self.right
+        if isinstance(self.right, Node):
+            right = self.right.magnitude()
+
+        return 3*left + 2*right
+
+
     def __repr__(self):
         return "[" + str(self.left) + "," + str(self.right) + "]"
 
@@ -72,8 +83,8 @@ def recurse_parse(s):
         # 4,
         s = s[2:]
     elif s[0] == "[":
-        n.left,s = recurse_parse(s)
-        n.left.parent = n
+        new_left,s = recurse_parse(s)
+        n.set_left(new_left)
         # ,
         s = s[1:]
     else:
@@ -84,8 +95,8 @@ def recurse_parse(s):
         # 4]
         s = s[2:]
     elif s[0] == "[":
-        n.right,s = recurse_parse(s)
-        n.right.parent = n
+        new_right,s = recurse_parse(s)
+        n.set_right(new_right)
         # ]
         s = s[1:]
     else:
@@ -151,30 +162,24 @@ def explode(n):
     n.traverse(explode_prev, state, reverse=True)
 
     if hit.parent.left == hit:
-        hit.parent.left = 0
+        hit.parent.set_left(0)
 
     if hit.parent.right == hit:
-        hit.parent.right = 0
+        hit.parent.set_right(0)
 
     return True
 
 # callback for split
 def find_split(n, hit_list, depth):
     if isinstance(n.left, int) and n.left >= 10:
-        new_node = Node()
-        new_node.left = int(math.floor(n.left / 2))
-        new_node.right = int(math.ceil(n.left / 2))
-        new_node.parent = n
-        n.left = new_node
+        new_node = Node(int(math.floor(n.left / 2)), int(math.ceil(n.left / 2)))
+        n.set_left(new_node)
         hit_list.append(True)
         return False
 
     if isinstance(n.right, int) and n.right >= 10:
-        new_node = Node()
-        new_node.left = int(math.floor(n.right / 2))
-        new_node.right = int(math.ceil(n.right / 2))
-        new_node.parent = n
-        n.right = new_node
+        new_node = Node(int(math.floor(n.right / 2)), int(math.ceil(n.right / 2)))
+        n.set_right(new_node)
         hit_list.append(True)
         return False
 
@@ -193,21 +198,17 @@ def split(n):
 def reduce(n):
     while True:
         if explode(n):
-            #print("explode", n)
             continue
         if split(n):
-            #print("split  ", n)
             continue
 
         break
 
 # adds 2 nodes
 def add(left, right):
-    root = Node()
-    root.left = left
-    left.parent = root
-    root.right = right
-    right.parent = root
+    root = Node(left, right)
+    root.set_left(left)
+    root.set_right(right)
 
     reduce(root)
 
