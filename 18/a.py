@@ -101,46 +101,6 @@ def find_explode(n, hit_list, depth):
 
     return True
 
-explode_prev = None
-explode_prev_done = False
-explode_hit_next = False
-# inorder traversal
-def explode_walk(n, hit, leftval, rightval):
-    global explode_prev
-    global explode_prev_done
-    global explode_hit_next
-
-    if isinstance(n.left, Node):
-        explode_walk(n.left, hit, leftval, rightval)
-
-    if explode_hit_next:
-        if isinstance(n.left, int):
-            n.left += rightval
-            explode_hit_next = False
-        elif isinstance(n.right, int):
-            n.right += rightval
-            explode_hit_next = False
-
-    if n == hit:
-
-        if explode_prev != None and not explode_prev_done:
-            if isinstance(explode_prev.right, int):
-                explode_prev.right += leftval
-            else:
-                if not isinstance(explode_prev.left, int):
-                    raise "left must be an int"
-                explode_prev.left += leftval
-
-        explode_prev_done = True
-        explode_hit_next = True
-
-    if isinstance(n.left, int) or isinstance(n.right, int):
-        explode_prev = n
-
-    if isinstance(n.right, Node):
-        explode_walk(n.right, hit, leftval, rightval)
-
-
 # callback for explode next add
 def explode_next(n, state, depth):
 
@@ -158,7 +118,7 @@ def explode_next(n, state, depth):
 
     return True
 
-# callback for explode next add
+# callback for explode prev add
 def explode_prev(n, state, depth):
 
     if state["target"] == n:
@@ -263,7 +223,8 @@ def parse():
 
     for line in rlines:
         line = line.strip()
-        rows.append(line)
+        n,s = recurse_parse(line)
+        rows.append(n)
 
 
 def test_explode_instance(test, expect):
@@ -300,12 +261,14 @@ def max_pair():
             if i == j:
                 continue
 
-            a,s = recurse_parse(rows[i])
-            b,s = recurse_parse(rows[j])
+            a = copy.deepcopy(rows[i])
+            b = copy.deepcopy(rows[j])
             result = add(a,b)
             result_mag = result.magnitude()
+
             if result_mag > maxpair:
                 maxpair = result_mag
+
     print("maxpair", maxpair)
     assert maxpair == 4583
 
