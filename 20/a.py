@@ -8,10 +8,11 @@ import math
 
 # useful problem state
 decoder = ""
-grid = collections.defaultdict(int)
+grid = None
 
 # runs the decoding step at x,y
 def decode(inx, iny):
+    global grid
     key = ""
     for y in range(iny-1, iny+2):
         for x in range(inx-1, inx+2):
@@ -20,19 +21,36 @@ def decode(inx, iny):
     assert len(key) == 9
 
     intkey = int(key,2)
-    return decoder[intkey]
+    ret = decoder[intkey]
+    # print(key, intkey, ret)
+    return ret
 
 # runs 1 iteration of the algorithm
 def iterate():
     global grid
-    new_grid = collections.defaultdict(int)
+    new_grid = None
+
     minx,miny,maxx,maxy = get_bounds()
 
-    for x in range(minx-1,maxx+1):
-        for y in range(miny-1, maxy+1):
+    c = decode(maxx+10,maxy+10)
+    if c == "#":
+        print("iterate default 1", c)
+        new_grid = collections.defaultdict(lambda:1)
+    else:
+        print("iterate default 0", c)
+        new_grid = collections.defaultdict(lambda:0)
+
+    print(minx,miny,maxx,maxy)
+
+    for x in range(minx-1,maxx+2):
+        for y in range(miny-1, maxy+2):
             c = decode(x,y)
             if c == "#":
                 new_grid[(x,y)] = 1
+            else:
+                new_grid[(x,y)] = 0
+
+#            print(x,y, "decode", c)
 
     grid = new_grid
 
@@ -42,10 +60,10 @@ def count_pixels():
 
 # returns the x,y,x,y to iterate on
 def get_bounds():
-    minx = 99999
-    maxx = -99999
-    miny = 99999
-    maxy = -99999
+    minx = 0
+    maxx = 0
+    miny = 0
+    maxy = 0
     for e in grid.keys():
         x,y = e
         minx = min(x,minx)
@@ -74,11 +92,15 @@ def print_grid():
 
 def parse():
     global decoder
+    global grid
 
     data = open("data.txt", "r")
     rlines = data.readlines()
 
     decoder = rlines[0].strip()
+
+    print("parse default 0")
+    grid = collections.defaultdict(lambda:0)
 
     y = 0
     for line in rlines[2:]:
@@ -90,14 +112,18 @@ def parse():
         for c in line:
             if c == "#":
                 grid[(x,y)] = 1
+            else:
+                grid[(x,y)] = 0
             x += 1
         y += 1
 
 def main():
     parse()
+    print_grid()
     iterate()
+    print_grid()
     iterate()
-    #print_grid()
+    print_grid()
 
     print("count_pixels", count_pixels())
 
