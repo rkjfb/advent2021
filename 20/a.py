@@ -120,10 +120,8 @@ def parse():
 def main():
     parse()
     print_grid()
-    iterate()
-    print_grid()
-    iterate()
-    print_grid()
+    for i in range(50):
+        iterate()
 
     print("count_pixels", count_pixels())
 
