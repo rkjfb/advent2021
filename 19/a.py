@@ -16,7 +16,7 @@ class Scanner:
 
         # original beacons in scanner space, sorted by z,y,x
         for i in range(2,-1,-1):
-            beacons = beacons[beacons[:,i].argsort()]
+            beacons = beacons[beacons[:,i].argsort(kind="mergesort")]
         self.beacons = beacons
 
         # list of all rotations applied, sorted by z,y,x
@@ -24,12 +24,12 @@ class Scanner:
         self.build_transformed()
 
         # Beacons, in root coordinate system
-        self.root_beacons = None
+        self.root_space_beacons = None
         # Offset used to get beacons into root coordinate system
         self.root_offset = np.array([-9999, -9999, -9999])
 
         if self.name == "0":
-            self.root_beacons = self.beacons
+            self.root_space_beacons = self.beacons
             self.root_offset = np.array([0,0,0])
 
     def __repr__(self):
@@ -49,22 +49,30 @@ class Scanner:
                 # select column i
                 # sorts it, produces list of column indices
                 # select columns in index order
-                result = result[result[:,i].argsort()]
+                result = result[result[:,i].argsort(kind="mergesort")]
 
             self.transformed.append(result)
 
-    # returns True, and updates root_beacons and root_offset
-    def match(self, root_beacons):
+    # returns True, and updates root_beacons and root_offset, up to supplied depth for start
+    def match(self, root_beacons, depth):
         len_root_beacons = len(root_beacons)
-        for start_i in range(17):
-            for t in self.transformed:
-                for start_j in range(17):
+        len_self_beacons = len(self.beacons)
+
+        for start_i in range(depth):
+            if start_i + 12 > len_root_beacons:
+                break
+
+            for start_j in range(depth):
+                if start_j + 12 > len_self_beacons:
+                    break
+
+                for t in self.transformed:
                     offset = root_beacons[start_i] - t[start_j]
 
                     i = start_i 
                     j = start_j 
                     count = 0
-                    while i < len_root_beacons and j < len(t) and count < 12 and len_root_beacons-i+count>10:
+                    while i < len_root_beacons and j < len_self_beacons:
                         b = t[j] + offset
                         if np.array_equal(root_beacons[i], b):
                             count += 1
@@ -91,7 +99,7 @@ class Scanner:
 
                     if count == 12:
                         self.root_offset = offset
-                        self.root_beacons = t + offset
+                        self.root_space_beacons = t + offset
                         return True
 
         return False
@@ -152,43 +160,42 @@ def build_rotations():
 # builds the list of scanners that directly map to root scanner
 def match_scanners():
     # scanners we haven't mapped into root space
-    outstanding = set(scanner)
-    outstanding.remove(scanner[0])
-    print("outstanding remove root", outstanding)
+    matched = set([scanner[0]])
+    compared = set()
+    depth = 5
 
-    peers = [scanner[0]]
+    while depth <= 20:
+        outstanding = set(scanner).difference(matched)
+        print("outstanding", len(outstanding), outstanding)
 
-    # start by comparing all scanners to root space
-#    root_beacons = scanner[0].beacons
-#    for s in scanner[1:]:
-#        if s.match(root_beacons):
-#            outstanding.remove(s)
-#
-#    print("outstanding remove root peers", outstanding)
+        new_matches = set()
+        for s in outstanding:
+            for p in matched:
+                if (s,p,depth) in compared:
+                    continue
+                if s.match(p.root_space_beacons, depth):
+                    new_matches.add(s)
+                    break
+                compared.add((s,p,depth))
 
-    while len(outstanding) > 0:
-        new_peers = []
-        for p in peers:
-            peer_beacons = p.root_beacons
-            for s in outstanding:
-                if s.match(peer_beacons):
-                    new_peers.append(s)
+        print("new_matches", new_matches)
+        matched = matched.union(new_matches)
 
-        for p in new_peers:
-            outstanding.remove(p)
+        if len(matched) == len(scanner):
+            # matched everything
+            break
 
-        peers = new_peers
-
-        print("outstanding loop", outstanding)
-
-        if len(outstanding) > 0:
-            # assert we're making progress
-            assert len(new_peers) > 0
+        if len(new_matches) == 0:
+            # no matches, try search deeper
+            depth += 5
+            print("depth", depth)
+        elif depth > 5:
+            depth -= 5
 
 def count_beacons():
     uniq = set()
     for s in scanner:
-        for b in s.root_beacons:
+        for b in s.root_space_beacons:
             uniq.add(tuple(b.tolist()))
 
     print("count beacons", len(uniq))
