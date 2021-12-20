@@ -10,6 +10,36 @@ import math
 decoder = ""
 grid = collections.defaultdict(int)
 
+# runs the decoding step at x,y
+def decode(inx, iny):
+    key = ""
+    for y in range(iny-1, iny+2):
+        for x in range(inx-1, inx+2):
+            key += str(grid[(x,y)])
+
+    assert len(key) == 9
+
+    intkey = int(key,2)
+    return decoder[intkey]
+
+# runs 1 iteration of the algorithm
+def iterate():
+    global grid
+    new_grid = collections.defaultdict(int)
+    minx,miny,maxx,maxy = get_bounds()
+
+    for x in range(minx-1,maxx+1):
+        for y in range(miny-1, maxy+1):
+            c = decode(x,y)
+            if c == "#":
+                new_grid[(x,y)] = 1
+
+    grid = new_grid
+
+# returns the number of 1s in grid
+def count_pixels():
+    return sum(grid.values())
+
 # returns the x,y,x,y to iterate on
 def get_bounds():
     minx = 99999
@@ -40,6 +70,7 @@ def print_grid():
             else:
                 row += "."
         print(row)
+    print()
 
 def parse():
     global decoder
@@ -64,6 +95,10 @@ def parse():
 
 def main():
     parse()
-    print_grid()
+    iterate()
+    iterate()
+    #print_grid()
+
+    print("count_pixels", count_pixels())
 
 main()
