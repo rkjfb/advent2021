@@ -192,18 +192,29 @@ def match_scanners():
         elif depth > 5:
             depth -= 5
 
-def count_beacons():
+def all_beacons():
     uniq = set()
     for s in scanner:
         for b in s.root_space_beacons:
             uniq.add(tuple(b.tolist()))
 
-    print("count beacons", len(uniq))
+    return uniq
+
+def max_manhatten_distance(beacons):
+    max_out = 0
+    for a in scanner:
+        for b in scanner:
+            out = sum(np.abs(a.root_offset - b.root_offset))
+            max_out = max(out, max_out)
+
+    print("max_manhatten_distance", max_out)
 
 def main():
     build_rotations()
     parse()
     match_scanners()
-    count_beacons()
+    uniq = all_beacons()
+    print("count beacons", len(uniq))
+    max_manhatten_distance(uniq)
 
 main()
