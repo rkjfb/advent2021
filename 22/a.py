@@ -20,7 +20,7 @@ class Node:
         # 8 children or None
         self.children = None
 
-    def max_(self):
+    def max(self):
         halfsize = self.size //2
         return (self.x-halfsize, 
                 self.x+halfsize, 
@@ -30,7 +30,7 @@ class Node:
                 self.z+halfsize)
 
     # return True if o contains i
-    def contains_(self, o, i):
+    def contains(self, o, i):
         (ox1,ox2,oy1,oy2,oz1,oz2) = o
         (ix1,ix2,iy1,iy2,iz1,iz2) = i
 
@@ -68,17 +68,17 @@ class Node:
                     self.children.append(Node(x,y,z,halfsize))
 
     def add(self, p):
-        if not self.intersects_(p, self.max_()):
-            print(self.max_(), "add", p, " - no intersection")
+        if not self.intersects_(p, self.max()):
+            print(self.max(), "add", p, " - no intersection")
             return
 
-        if self.contains_(p, self.max_()):
-            print(self.max_(), "add", p, " - full containment")
+        if self.contains(p, self.max()):
+            print(self.max(), "add", p, " - full containment")
             self.full = True
             self.children = None
             return
 
-        print(self.max_(), "add", p)
+        print(self.max(), "add", p)
 
         # partial containment
         self.ensure_children_()
@@ -117,7 +117,7 @@ def parse():
     data = open("data.txt", "r")
     rlines = data.readlines()
 
-    root = Node(0,0,0,4)
+    root = Node(0,0,0,8)
 
     for line in rlines:
         line = line.strip()
@@ -151,9 +151,11 @@ def parse():
         if z1 > 50 or z2 < -50:
             continue
 
-        print(on, x1,x2,y1,y2,z1,z2)
+        p = (x1,x2,y1,y2,z1,z2)
+        print(on, p)
+        assert root.contains(root.max(), p)
         if on == 1:
-            root.add((x1,x2,y1,y2,z1,z2))
+            root.add(p)
         else:
             print("del not implemented")
 
