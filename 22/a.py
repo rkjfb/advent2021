@@ -6,8 +6,14 @@ import collections
 import math
 #from scipy.spatial.transform import Rotation
 
+node_count = 0
+
 class Node:
     def __init__(self, x,y,z, size, depth):
+        global node_count
+        node_count += 1
+        if node_count % 100 == 0:
+            print("node_count", node_count)
         # center of cube
         self.x = x
         self.y = y
@@ -97,12 +103,12 @@ class Node:
             return
 
         if self.contains(p, self.max()):
-            print(self.max(), "subtract", p, " - full containment")
+            #print(self.max(), "subtract", p, " - full containment")
             self.full = False
             self.children = None
             return
 
-        print(self.max(), "subtract", p)
+        #print(self.max(), "subtract", p)
 
         # partial intersection, allocate full children so we can intersect
         self.ensure_children_()
@@ -117,7 +123,9 @@ class Node:
 
     def sum(self):
         if self.full:
-            return self.size * self.size * self.size
+            ret = self.size * self.size * self.size
+            #print("fullret", ret)
+            return ret
 
         if self.children == None:
             return 0
@@ -126,12 +134,15 @@ class Node:
         for c in self.children:
             total += c.sum()
 
+        #print("totalret", total)
         return total
 
     def __repr__(self):
         ret = str(self.depth) + ", " + str(self.size) + ": " 
         if self.full:
             return ret + "full"
+        if self.children != None:
+            ret = "\n" + ret
         return ret + str(self.children) 
 
     def print_tree(self,depth):
@@ -140,6 +151,34 @@ class Node:
             for c in self.children:
                 c.print_tree(depth+1)
 
+# part 1 state, used for verification
+grid = collections.defaultdict(int)
+
+# returns the number of 1s in grid
+def count_pixels():
+    return sum(grid.values())
+
+def setgrid(on, x1,x2,y1,y2,z1,z2):
+    for x in range(x1,x2):
+        for y in range(y1, y2):
+            for z in range(z1, z2):
+                grid[(x,y,z)] = on
+
+# return (True, limitedx1, limitedx2) for continuation
+def range_limit(x1, x2):
+    part2 = True
+
+    if part2:
+        return (True, x1, x2)
+
+    nx1 = max(x1, -50)
+    nx2 = min(x2, 50)
+
+    if nx1 > 50 or nx2 < -50:
+        return (False,0,0)
+
+    return (True, nx1, nx2)
+
 def parse():
     global decoder
     global grid
@@ -147,7 +186,7 @@ def parse():
     data = open("data.txt", "r")
     rlines = data.readlines()
 
-    root = Node(0,0,0,128, 0)
+    root = Node(0,0,0,32, 0)
 
     for line in rlines:
         line = line.strip()
@@ -161,24 +200,18 @@ def parse():
 
         s = s[1].split(",")
         sx = s[0].split("..")
-        x1 = max(int(sx[0][2:]), -50)
-        x2 = min(int(sx[1])+1, 50)
-
-        if x1 > 50 or x2 < -50:
+        (c,x1,x2) = range_limit(int(sx[0][2:]), int(sx[1])+1)
+        if not c:
             continue
 
         sy = s[1].split("..")
-        y1 = max(int(sy[0][2:]), -50)
-        y2 = min(int(sy[1])+1, 50)
-
-        if y1 > 50 or y2 < -50:
+        (c,y1,y2) = range_limit(int(sy[0][2:]), int(sy[1])+1)
+        if not c:
             continue
 
         sz = s[2].split("..")
-        z1 = max(int(sz[0][2:]), -50)
-        z2 = min(int(sz[1])+1, 50)
-
-        if z1 > 50 or z2 < -50:
+        (c,z1,z2) = range_limit(int(sz[0][2:]), int(sz[1])+1)
+        if not c:
             continue
 
         p = (x1,x2,y1,y2,z1,z2)
@@ -190,8 +223,19 @@ def parse():
             #print("skip subtract")
             root.subtract(p)
 
+        check = False
+        if check:
+            setgrid(on, x1,x2,y1,y2,z1,z2)
+            newc = root.sum()
+            oldc = count_pixels()
+
+            if newc != oldc:
+                print("failed", oldc, newc)
+                assert False
+
     print("sum", root.sum())
-    #print(root)
+    print("node_count", node_count)
+    print(root)
     #root.print_tree(0)
 
 def main():
