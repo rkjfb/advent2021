@@ -7,35 +7,38 @@ import math
 #from scipy.spatial.transform import Rotation
 
 # useful problem state
-grid = collections.defaultdict(int)
+
+# 100x100x100 completely full/empty cells, indexed by lowest value corner
+# eg. key (0,0,0) goes all the way to (100,100,100)
+# it includes (0,0,0) and excludes (100,100,100)
+res = 100
+high_grid = collections.defaultdict(int)
+
+# dict of 1x1x1 cells for high_grid edges
+low_grid = dict()
 
 # returns the number of 1s in grid
 def count_pixels():
     return sum(grid.values())
 
-# returns the x,y,x,y to iterate on
-def get_bounds():
-    minx = 0
-    maxx = 0
-    miny = 0
-    maxy = 0
-    for e in grid.keys():
-        x,y = e
-        minx = min(x,minx)
-        maxx = max(x,maxx)
-        miny = min(y,miny)
-        maxy = max(y,maxy)
+# returns the high_range of (lo,hi)
+# note that n2 might be less than n1
+def high_range(x1, x2):
+    n1 = x1 - (x1 % res) + res
+    n2 = x2 - (x2 % res)
+    return (n1,n2)
 
-    maxx += 1
-    maxy += 1
-
-    return minx,miny,maxx,maxy
 
 def setgrid(on, x1,x2,y1,y2,z1,z2):
-    for x in range(x1,x2+1):
-        for y in range(y1, y2+1):
-            for z in range(z1, z2+1):
-                grid[(x,y,z)] = on
+    # set the high bits
+    (hix1,hix2) = high_range(x1,x2)
+    (hiy1,hiy2) = high_range(y1,y2)
+    (hiz1,hiz2) = high_range(z1,z2)
+    for x in range(hix1,hix2,100):
+        for y in range(hiy1,hiy2,100):
+            for z in range(hiz1,hiz2,100):
+                high_range[(x,y,x)] = 1
+
 
 def parse():
     global decoder
