@@ -86,6 +86,25 @@ class Node:
         for c in self.children:
             c.add(p)
 
+    def subtract(self, p):
+        if not self.intersects_(p, self.max()):
+            print(self.max(), "subtract", p, " - no intersection")
+            return
+
+        if self.contains(p, self.max()):
+            print(self.max(), "subtract", p, " - full containment")
+            self.full = False
+            self.children = None
+            return
+
+        print(self.max(), "subtract", p)
+
+        # partial containment
+        self.ensure_children_()
+
+        for c in self.children:
+            c.subtract(p)
+
     def sum(self):
         if self.full:
             return self.size * self.size * self.size
@@ -117,7 +136,7 @@ def parse():
     data = open("data.txt", "r")
     rlines = data.readlines()
 
-    root = Node(0,0,0,8)
+    root = Node(0,0,0,32)
 
     for line in rlines:
         line = line.strip()
@@ -157,10 +176,11 @@ def parse():
         if on == 1:
             root.add(p)
         else:
-            print("del not implemented")
+            print("subtract")
+            #root.subtract(p)
 
     print("sum", root.sum())
-    root.print_tree()
+    #root.print_tree()
 
 def main():
     parse()
