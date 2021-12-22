@@ -6,14 +6,17 @@ import collections
 import math
 #from scipy.spatial.transform import Rotation
 
+# total number of nodes allocated
 node_count = 0
+grid_node_count = 0
+
 
 class Node:
     def __init__(self, x,y,z, size, depth):
         global node_count
         node_count += 1
-        if node_count % 100 == 0:
-            print("node_count", node_count)
+        if node_count % 1000 == 0:
+            print("node_count", node_count, "grid_node_count", grid_node_count)
         # center of cube
         self.x = x
         self.y = y
@@ -69,14 +72,18 @@ class Node:
 
         self.children = []
         halfsize = self.size//2
-        assert halfsize >= 1
-        quartersize = halfsize/2
-        assert quartersize >= 0.5
+        assert halfsize >= grid_transition
+        quartersize = halfsize//2
+        assert quartersize >= 1
+
         # print("instantiate children", halfsize, quartersize)
         for x in [self.x-quartersize, self.x+quartersize]:
             for y in [self.y-quartersize, self.y+quartersize]:
                 for z in [self.z-quartersize, self.z+quartersize]:
-                    self.children.append(Node(x,y,z,halfsize,self.depth+1))
+                    if halfsize == grid_transition:
+                        self.children.append(GridNode(x,y,z,halfsize,self.depth+1))
+                    else:
+                        self.children.append(Node(x,y,z,halfsize,self.depth+1))
 
     def add(self, p):
         if not self.intersects_(p, self.max()):
@@ -151,18 +158,51 @@ class Node:
             for c in self.children:
                 c.print_tree(depth+1)
 
+# node, but using a dict
+class GridNode(Node):
+    def __init__(self, x,y,z, size, depth):
+        super(GridNode, self).__init__(x,y,z,size,depth)
+        global grid_node_count
+        grid_node_count += 1
+        self.grid = collections.defaultdict(int)
+
+    def setgrid_(self, on, x1,x2,y1,y2,z1,z2):
+        (mx1,mx2,my1,my2,mz1,mz2) = self.max()
+        for x in range(max(x1,mx1),min(x2,mx2)):
+            for y in range(max(y1,my1),min(y2,my2)):
+                for z in range(max(z1,mz1),min(z2,mz2)):
+                    self.grid[(x,y,z)] = on
+
+    def add(self, p):
+        self.setgrid_(1, *p)
+
+    def subtract(self, p):
+        self.setgrid_(0, *p)
+
+    def sum(self):
+        return sum(self.grid.values())
+
+    def __repr__(self):
+        ret = str(self.depth) + ", grid: " + str(self.sum())
+        return ret
+
+# when we transition from node to grid
+max_size = 2 ** 20
+root = Node(0,0,0,max_size, 0)
+grid_transition = min(32, max_size//2)
+
 # part 1 state, used for verification
-grid = collections.defaultdict(int)
+ggrid = collections.defaultdict(int)
 
 # returns the number of 1s in grid
 def count_pixels():
-    return sum(grid.values())
+    return sum(ggrid.values())
 
 def setgrid(on, x1,x2,y1,y2,z1,z2):
     for x in range(x1,x2):
         for y in range(y1, y2):
             for z in range(z1, z2):
-                grid[(x,y,z)] = on
+                ggrid[(x,y,z)] = on
 
 # return (True, limitedx1, limitedx2) for continuation
 def range_limit(x1, x2):
@@ -181,12 +221,12 @@ def range_limit(x1, x2):
 
 def parse():
     global decoder
-    global grid
+    global ggrid
+    global root
 
     data = open("data.txt", "r")
     rlines = data.readlines()
 
-    root = Node(0,0,0,32, 0)
 
     for line in rlines:
         line = line.strip()
@@ -234,8 +274,8 @@ def parse():
                 assert False
 
     print("sum", root.sum())
-    print("node_count", node_count)
-    print(root)
+    print("node_count", node_count, "grid_node_count", grid_node_count)
+    #print(root)
     #root.print_tree(0)
 
 def main():
