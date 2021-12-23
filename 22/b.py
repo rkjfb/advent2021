@@ -55,6 +55,7 @@ def range_limit(x1, x2):
 
 # list of steps from input
 steps = []
+reversed_steps = None
 
 # sorted x,y,z segments
 x_segments = []
@@ -100,16 +101,19 @@ def build_all_segments():
 def step_x(y,z):
     count_pixels = 0
     for (start,end) in x_segments:
+        #print("segment", start, end, len(steps))
         pixels_on = 0
-        for s in steps:
+        for s in reversed_steps:
+            #print("step_x", s)
             (on,x1,x2,y1,y2,z1,z2) = s
             if y<y1 or y >=y2:
                 continue
             if z<z1 or z >=z2:
                 continue
             if x1<=start<x2:
-                # todo: if we have a segment-specific step list, then last in-zy-range index wins
                 pixels_on = on
+                # last segment writer wins
+                break
 
         if pixels_on == 1:
             # todo: store range instead of end
@@ -117,21 +121,46 @@ def step_x(y,z):
 
     return count_pixels
 
-def count_pixels():
-    (startz,ignore) = z_segments[0]
-    (ignore,endz) = z_segments[-1]
-    (starty,ignore) = y_segments[0]
-    (ignore,endy) = y_segments[-1]
+def step_y(z):
+    count_pixels = 0
+    for (start,end) in y_segments:
+        row_pixels = 0
+        for s in reversed_steps:
+            (on,x1,x2,y1,y2,z1,z2) = s
+            if z<z1 or z >=z2:
+                continue
+            if y1<=start<y2:
+                row_pixels = step_x(start, z)
+                # last segment writer wins
+                break
 
+        count_pixels += row_pixels
+
+    return count_pixels
+
+def count_pixels():
     total = 0
-    for z in range(startz,endz):
-        for y in range(starty,endy):
-            total += step_x(y,z)
+    for (start,end) in z_segments:
+        plane_pixels = 0
+        for s in reversed_steps:
+            (on,x1,x2,y1,y2,z1,z2) = s
+            if z1<=start<z2:
+                plane_pixels = step_y(start)
+                # last segment writer wins
+                break
+
+        total += plane_pixels
+
+    #for z in range(startz,endz):
+    #    total += step_y(z)
+        #for y in range(starty,endy):
+        #    total += step_x(y,z)
 
     return total
 
 def parse():
     global steps
+    global reversed_steps
 
     data = open("data.txt", "r")
     rlines = data.readlines()
@@ -163,6 +192,9 @@ def parse():
             continue
 
         steps.append((on,x1,x2,y1,y2,z1,z2))
+
+    reversed_steps = steps.copy()
+    reversed_steps.reverse()
 
 def main():
     parse()
