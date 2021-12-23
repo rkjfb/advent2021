@@ -13,7 +13,69 @@ class Node():
     def __init__(self, name):
         self.name = name
         self.value = None
+
+        # links to neighbours
         self.link = []
+
+        # value must only be this value
+        self.restricted = None
+
+    # returns true if there's a path to target
+    def path_to(self, target):
+        if target.restricted != None:
+            if self.value != target.restricted:
+                # eg. only D is allowed in 'dd'
+                return False
+
+        visited = set()
+        explore = []
+        for t in self.link:
+            if t.value == None:
+                explore.append(t)
+
+        while len(explore) > 0:
+            n = explore.pop()
+            visited.add(n)
+
+            if n == target:
+                return True
+
+            for t in n.link:
+                if t.value == None and not t in visited:
+                    explore.append(t)
+
+        return False
+
+    # moves contents of self to target
+    def move_to(self, target):
+        if not self.path_to(target):
+            print(f"no path_to from {self.name}:{self.value} to {target.name}")
+            assert False
+        assert target.value == None
+        assert self.value != None
+
+        target.value = self.value
+        self.value = None
+
+    # tries to empty spot
+    def push_out(self):
+        # todo: think about pushing out top lane
+        # todo: think about favouring outside pushes, with an inside option
+        assert self.value != None
+        if not self.name in [ "dd", "d", "cc", "c", "bb", "b", "aa", "a" ]:
+            assert False
+
+        for t in self.link:
+            if t.value == None:
+                self.move_to(t)
+                return
+
+        # todo: hard coded 0
+        self.link[0].push_out()
+
+        print_graph()
+
+        self.move_to(self.link[0])
 
 def build_graph(example):
     global graph
@@ -31,9 +93,11 @@ def build_graph(example):
     for name in bot_names:
         double = name+name
         graph[name] = Node(name)
+        graph[name].restricted = name.upper()
         graph[double] = Node(double)
+        graph[double].restricted = name.upper()
         graph[name].link.append(graph[double])
-        graph[double].link.append(name)
+        graph[double].link.append(graph[name])
 
     # zigs
     for i in range(len(bot_names)):
@@ -97,8 +161,42 @@ def print_graph():
     print(row2)
     print(row3)
 
+
+def solve():
+    global graph
+
+    priority = [ "dd", "d", "cc", "c", "bb", "b", "aa", "a" ]
+    expected = [ "D", "D",  "C", "C",  "B", "B", "A", "A" ]
+    for i in range(len(priority)):
+        print("iteration", i)
+        print_graph()
+        # pick the most valuable target first (D in dd)
+        current = graph[priority[i]]
+        expect = expected[i]
+        if current.value == expect:
+            # pick a new target
+            continue
+
+        # if the target slot is empty, check if we can just move into it
+        if current.value == None:
+            finished = False
+            for k,v in graph:
+                if v.value == expect:
+                    if v.path_to(current):
+                        v.move_to(current)
+                        finished = True
+                        break
+            if finished:
+                continue
+
+        # bugbug: we might have space, but not a path to move into..
+
+        # make some space
+        current.push_out()
+
 def main():
-    build_graph(False)
+    build_graph(True)
+    solve()
     print_graph()
 
 main()
