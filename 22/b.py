@@ -69,7 +69,7 @@ def build_segment(s):
 
     start = l[0]
     for n in l[1:]:
-        seg.append((start,n))
+        seg.append((start,(n-start)))
         # todo: segment-specific step list
         start = n
 
@@ -100,8 +100,7 @@ def build_all_segments():
 # 1d x-axis result of running steps
 def step_x(y,z):
     count_pixels = 0
-    for (start,end) in x_segments:
-        #print("segment", start, end, len(steps))
+    for (start,seg_range) in x_segments:
         pixels_on = 0
         for s in reversed_steps:
             #print("step_x", s)
@@ -116,14 +115,13 @@ def step_x(y,z):
                 break
 
         if pixels_on == 1:
-            # todo: store range instead of end
-            count_pixels += end-start
+            count_pixels += seg_range
 
     return count_pixels
 
 def step_y(z):
     count_pixels = 0
-    for (start,end) in y_segments:
+    for (start,seg_range) in y_segments:
         row_pixels = 0
         for s in reversed_steps:
             (on,x1,x2,y1,y2,z1,z2) = s
@@ -134,13 +132,14 @@ def step_y(z):
                 # last segment writer wins
                 break
 
-        count_pixels += row_pixels
+        count_pixels += seg_range*row_pixels
 
     return count_pixels
 
 def count_pixels():
     total = 0
-    for (start,end) in z_segments:
+    for (start,seg_range) in z_segments:
+        print("z_segment", start, seg_range)
         plane_pixels = 0
         for s in reversed_steps:
             (on,x1,x2,y1,y2,z1,z2) = s
@@ -149,12 +148,7 @@ def count_pixels():
                 # last segment writer wins
                 break
 
-        total += plane_pixels
-
-    #for z in range(startz,endz):
-    #    total += step_y(z)
-        #for y in range(starty,endy):
-        #    total += step_x(y,z)
+        total += seg_range*plane_pixels
 
     return total
 
