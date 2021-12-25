@@ -66,6 +66,31 @@ class Node():
         target.set_value(self.value())
         self.set_value(None)
 
+    # returns all legal moves
+    # [(from_key,to_key)]
+    def all_legal_moves(self):
+        visited = set()
+        explore = []
+        for t in self.link:
+            if t.value() == None:
+                explore.append(t)
+
+        ret = []
+
+        while len(explore) > 0:
+
+            n = explore.pop()
+            visited.add(n)
+
+            if n.value() == None:
+                ret.append((self.name, n.name))
+
+            for t in n.link:
+                if t.value() == None and not t in visited:
+                    explore.append(t)
+
+        return ret
+
     # tries to empty spot
     def push_out(self):
         # todo: think about pushing out top lane
@@ -116,6 +141,9 @@ def build_graph(example):
         graph[bot].link.append(graph[top])
         graph[bot].link.append(graph[top2])
         graph[top].link.append(graph[top2])
+
+    for k,v in graph.items():
+        state[k] = None
 
     if example:
         state["a"] = "B"
@@ -170,42 +198,104 @@ def print_graph():
     print(row2)
     print(row3)
 
-
-def solve():
-    global graph
-
-    priority = [ "dd", "d", "cc", "c", "bb", "b", "aa", "a" ]
-    expected = [ "D", "D",  "C", "C",  "B", "B", "A", "A" ]
-    for i in range(len(priority)):
-        print("iteration", i)
-        print_graph()
-        # pick the most valuable target first (D in dd)
-        current = graph[priority[i]]
-        expect = expected[i]
-        if current.value() == expect:
-            # pick a new target
+# returns a final move it if exists
+# (startposkey, endposkey)
+def find_final_move():
+    for k,v in state.items():
+        if v == None:
             continue
 
-        # if the target slot is empty, check if we can just move into it
-        if current.value() == None:
-            finished = False
-            for k,v in graph:
-                if v.value() == expect:
-                    if v.path_to(current):
-                        v.move_to(current)
-                        finished = True
-                        break
-            if finished:
-                continue
+        c = v.lower()
+        double = c + c
 
-        # bugbug: we might have space, but not a path to move into..
+        if state[double] == None:
+            if graph[k].path_to(graph[double]):
+                return (k, double)
 
-        # make some space
-        current.push_out()
+        if state[double] == v and state[c] == None:
+            if graph[k].path_to(graph[c]):
+                return (k, c)
+
+    return None
+
+# return the list of legal clear out moves
+# a clear out move pushes a value from a final spot it should not be in
+# [(startposkey, endposkey)]
+def build_clearout_moves():
+    moves = []
+
+    priority = [ "d", "c", "b", "a"]
+
+    for c in priority:
+        double = c + c
+        upper = c.upper()
+
+        single_clear_needed = (state[c] != upper)
+
+        if state[double] != upper:
+            single_clear_needed = True
+            double_list = graph[double].all_legal_moves()
+            moves.extend(double_list)
+
+        if single_clear_needed and state[c] != upper:
+            single_list = graph[c].all_legal_moves()
+            moves.extend(single_list)
+
+    return moves
+
+# builds a list of all legal moves for the current board
+def build_moves():
+    move = find_final_move()
+    if move != None:
+        # if there is a final move, just do it
+        return [move]
+
+    moves = build_clearout_moves()
+
+    # todo: are there move legal moves here?
+
+    return moves
+
+# returns True if the puzzle is solved
+def finished():
+    priority = [ "d", "c", "b", "a"]
+
+    for c in priority:
+        double = c + c
+        upper = c.upper()
+
+        if state[c] != upper or state[double] != upper:
+            return False
+
+    return True
+
+# return True if problem is solved
+def recurse_solve(depth):
+    if finished():
+        return True
+
+    moves = build_moves()
+    print("depth", depth, "moveslen", len(moves))
+    print_graph()
+
+    for from_k,to_k in moves:
+        backup_from = state[from_k]
+        backup_to = state[to_k]
+
+        graph[from_k].move_to(graph[to_k])
+
+        solved = recurse_solve(depth+1)
+
+        if solved:
+            return True
+
+        state[from_k] = backup_from
+        state[to_k] = backup_to
+
+    return False
 
 def main():
     build_graph(True)
-    solve()
-    print_graph()
+    recurse_solve(0)
 
 main()
