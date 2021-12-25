@@ -6,13 +6,14 @@ import collections
 import math
 #from scipy.spatial.transform import Rotation
 
-# useful problem state
+# graph of board paths
 graph = {}
+# current board state
+state = {}
 
 class Node():
     def __init__(self, name):
         self.name = name
-        self.value = None
 
         # links to neighbours
         self.link = []
@@ -20,17 +21,25 @@ class Node():
         # value must only be this value
         self.restricted = None
 
+    def value(self):
+        global state
+        return state.get(self.name, None)
+
+    def set_value(self, val):
+        global state
+        state[self.name] = val
+
     # returns true if there's a path to target
     def path_to(self, target):
         if target.restricted != None:
-            if self.value != target.restricted:
+            if self.value() != target.restricted:
                 # eg. only D is allowed in 'dd'
                 return False
 
         visited = set()
         explore = []
         for t in self.link:
-            if t.value == None:
+            if t.value() == None:
                 explore.append(t)
 
         while len(explore) > 0:
@@ -41,7 +50,7 @@ class Node():
                 return True
 
             for t in n.link:
-                if t.value == None and not t in visited:
+                if t.value() == None and not t in visited:
                     explore.append(t)
 
         return False
@@ -49,24 +58,24 @@ class Node():
     # moves contents of self to target
     def move_to(self, target):
         if not self.path_to(target):
-            print(f"no path_to from {self.name}:{self.value} to {target.name}")
+            print(f"no path_to from {self.name}:{self.value()} to {target.name}")
             assert False
-        assert target.value == None
-        assert self.value != None
+        assert target.value() == None
+        assert self.value() != None
 
-        target.value = self.value
-        self.value = None
+        target.set_value(self.value())
+        self.set_value(None)
 
     # tries to empty spot
     def push_out(self):
         # todo: think about pushing out top lane
         # todo: think about favouring outside pushes, with an inside option
-        assert self.value != None
+        assert self.value() != None
         if not self.name in [ "dd", "d", "cc", "c", "bb", "b", "aa", "a" ]:
             assert False
 
         for t in self.link:
-            if t.value == None:
+            if t.value() == None:
                 self.move_to(t)
                 return
 
@@ -109,32 +118,32 @@ def build_graph(example):
         graph[top].link.append(graph[top2])
 
     if example:
-        graph["a"].value = "B"
-        graph["aa"].value = "A"
-        graph["b"].value = "C"
-        graph["bb"].value = "D"
-        graph["c"].value = "B"
-        graph["cc"].value = "C"
-        graph["d"].value = "D"
-        graph["dd"].value = "A"
+        state["a"] = "B"
+        state["aa"] = "A"
+        state["b"] = "C"
+        state["bb"] = "D"
+        state["c"] = "B"
+        state["cc"] = "C"
+        state["d"] = "D"
+        state["dd"] = "A"
     else:
-        graph["a"].value = "D"
-        graph["aa"].value = "C"
-        graph["b"].value = "B"
-        graph["bb"].value = "A"
-        graph["c"].value = "C"
-        graph["cc"].value = "D"
-        graph["d"].value = "A"
-        graph["dd"].value = "B"
+        state["a"] = "D"
+        state["aa"] = "C"
+        state["b"] = "B"
+        state["bb"] = "A"
+        state["c"] = "C"
+        state["cc"] = "D"
+        state["d"] = "A"
+        state["dd"] = "B"
 
 def print_graph():
     row = ""
     top_names = ["ll", "l", "ab", "bc", "cd", "r", "rr"]
     for name in top_names:
-        if graph[name].value == None:
+        if graph[name].value() == None:
             row += "."
         else:
-            row += graph[name].value
+            row += graph[name].value()
 
         if name in ["l", "ab", "bc", "cd"]:
             row += "."
@@ -145,17 +154,17 @@ def print_graph():
     row3 = "  "
     bot_names = ["a", "b", "c", "d"]
     for name in bot_names:
-        if graph[name].value == None:
+        if graph[name].value() == None:
             row2 += "."
         else:
-            row2 += graph[name].value
+            row2 += graph[name].value()
         row2 += " "
 
         double = name+name
-        if graph[double].value == None:
+        if graph[double].value() == None:
             row3 += "."
         else:
-            row3 += graph[double].value
+            row3 += graph[double].value()
         row3 += " "
 
     print(row2)
@@ -173,15 +182,15 @@ def solve():
         # pick the most valuable target first (D in dd)
         current = graph[priority[i]]
         expect = expected[i]
-        if current.value == expect:
+        if current.value() == expect:
             # pick a new target
             continue
 
         # if the target slot is empty, check if we can just move into it
-        if current.value == None:
+        if current.value() == None:
             finished = False
             for k,v in graph:
-                if v.value == expect:
+                if v.value() == expect:
                     if v.path_to(current):
                         v.move_to(current)
                         finished = True
