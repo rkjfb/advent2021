@@ -5,6 +5,7 @@ import copy
 import collections
 import math
 #from scipy.spatial.transform import Rotation
+import sys
 
 # graph of board paths
 graph = {}
@@ -34,6 +35,7 @@ class Node():
     # returns (True, score) if there's a path to target
     # otherwise (False, 0)
     def path_to(self, target):
+        #print(f"{self.name} path_to {target.name}")
         if target.restricted != None:
             if self.value() != target.restricted:
                 # eg. only D is allowed in 'dd'
@@ -42,7 +44,7 @@ class Node():
         step_cost_dict = {"A":1, "B":10, "C":100, "D":1000}
         step_cost = step_cost_dict[self.value()]
 
-        visited = set()
+        visited = set([self])
         explore = []
         for t in self.link:
             if t.value() == None:
@@ -51,10 +53,11 @@ class Node():
                     # todo: technically incorrect for ll and rr
                     multiplier = 2
                 explore.append((t, multiplier*step_cost))
+                visited.add(t)
 
         while len(explore) > 0:
             (n, current_cost) = explore.pop()
-            visited.add(n)
+            #print(f"visit {n.name} {current_cost}")
 
             if n == target:
                 return (True, current_cost)
@@ -66,6 +69,7 @@ class Node():
                         # todo: technically incorrect for ll and rr
                         multiplier = 2
                     explore.append((t, current_cost+multiplier*step_cost))
+                    visited.add(t)
 
         return (False,0)
 
@@ -108,26 +112,6 @@ class Node():
                 ret.append((self.name, target.name, cost))
 
         return ret
-
-    # tries to empty spot
-    def push_out(self):
-        # todo: think about pushing out top lane
-        # todo: think about favouring outside pushes, with an inside option
-        assert self.value() != None
-        if not self.name in [ "dd", "d", "cc", "c", "bb", "b", "aa", "a" ]:
-            assert False
-
-        for t in self.link:
-            if t.value() == None:
-                self.move_to(t)
-                return
-
-        # todo: hard coded 0
-        self.link[0].push_out()
-
-        print_graph()
-
-        self.move_to(self.link[0])
 
 def build_graph(example):
     global graph
@@ -290,7 +274,7 @@ def build_moves():
 
     #print(moves)
 
-    # todo: are there move legal moves here?
+    # todo: are there more legal moves here?
 
     return moves
 
@@ -354,8 +338,14 @@ def recurse_solve(steps, depth, start_cost):
     return ret_solved
 
 def main():
-    build_graph(True)
+    build_graph(False)
     print_graph()
+
+#    print("all_legal_moves aa")
+#    moves = graph["a"].all_legal_moves()
+#    for m in moves:
+#        print(m)
+
     solved = recurse_solve([], 0, 0)
     print("solved", solved, iterations)
     print("min_solved_cost", min_solved_cost)
