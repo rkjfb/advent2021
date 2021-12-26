@@ -51,8 +51,9 @@ class Node():
             if t.value() == None:
                 multiplier = 1
                 if t.name in hallway_nodes or self.name in hallway_nodes:
-                    # todo: technically incorrect for ll and rr
-                    multiplier = 2
+                    if t.name not in ["ll", "rr"] and self.name not in ["ll", "rr"]:
+                        multiplier = 2
+                    #print("multiplier", multiplier, t.name, self.name)
                 explore.append((t, multiplier*step_cost))
                 visited.add(t)
 
@@ -67,8 +68,9 @@ class Node():
                 if t.value() == None and not t in visited:
                     multiplier = 1
                     if t.name in hallway_nodes or n.name in hallway_nodes:
-                        if t.name not in ["ll", "rr"]:
+                        if t.name not in ["ll", "rr"] and n.name not in ["ll", "rr"]:
                             multiplier = 2
+                    #print("multiplier", multiplier, t.name, n.name)
                     explore.append((t, current_cost+multiplier*step_cost))
                     visited.add(t)
 
@@ -125,7 +127,7 @@ def build_graph(example):
 
     top_names = ["ll", "l", "ab", "bc", "cd", "r", "rr"]
     hallway_nodes = set(top_names)
-    hallway_nodes_for_D = set(["cd", "r"])
+    hallway_nodes_for_D = set(["ab","bc", "cd", "r", "rr"])
 
     # create the top row nodes
     for name in top_names:
@@ -320,8 +322,6 @@ def build_clearout_moves():
         for i in range(start_clearout_index, len(targets)):
             if state[targets[i]] != None:
                 clear_list = graph[targets[i]].all_legal_moves()
-                if len(clear_list)>0:
-                    return clear_list
                 moves.extend(clear_list)
 
     return moves
@@ -380,12 +380,13 @@ def recurse_solve(steps, depth, start_cost):
 
     global iterations
     iterations += 1
-    if iterations > 10:
+    if iterations > 1000000:
         return False
 
-    print_graph()
+    #print(iterations,depth, moves)
+    #print_graph()
 
-    if iterations % 100 == 0:
+    if iterations % 10000 == 0:
         print("iterations", iterations)
         print_graph()
 
@@ -410,7 +411,7 @@ def recurse_solve(steps, depth, start_cost):
     return ret_solved
 
 def main():
-    build_graph(True)
+    build_graph(False)
     print_graph()
 
 
@@ -430,6 +431,14 @@ def main():
 #
 #    assert(False)
 
+#    state["a"] = None
+#    state["ll"] = "A"
+#    print_graph()
+#    (exists,cost) = graph["ll"].path_to(graph["a"])
+#    print(exists,cost)
+#    assert False
+
+
     solved = recurse_solve([], 0, 0)
     print("solved", solved, iterations)
     print("min_solved_cost", min_solved_cost)
@@ -440,5 +449,7 @@ def main():
         print(f"{total}+{cost} {graph[to_k].value()} to {to_k}")
         total += cost
         print_graph()
+
+    print("min_solved_cost", min_solved_cost)
 
 main()
