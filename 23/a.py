@@ -66,8 +66,8 @@ class Node():
                 if t.value() == None and not t in visited:
                     multiplier = 1
                     if t.name in hallway_nodes or n.name in hallway_nodes:
-                        # todo: technically incorrect for ll and rr
-                        multiplier = 2
+                        if t.name not in ["ll", "rr"]:
+                            multiplier = 2
                     explore.append((t, current_cost+multiplier*step_cost))
                     visited.add(t)
 
@@ -131,17 +131,31 @@ def build_graph(example):
         graph[top_names[i]].link.append(graph[top_names[i+1]])
         graph[top_names[i+1]].link.append(graph[top_names[i]])
 
-    # create bottom 2 row nodes
+    # create bottom 4 row nodes
     # link bottom with middle
     bot_names = ["a", "b", "c", "d"]
     for name in bot_names:
-        double = name+name
         graph[name] = Node(name)
         graph[name].restricted = name.upper()
+
+        double = name+name
         graph[double] = Node(double)
         graph[double].restricted = name.upper()
         graph[name].link.append(graph[double])
         graph[double].link.append(graph[name])
+
+        triple = double+name
+        graph[triple] = Node(triple)
+        graph[triple].restricted = name.upper()
+        graph[double].link.append(graph[triple])
+        graph[triple].link.append(graph[double])
+
+        quad = triple+name
+        graph[quad] = Node(quad)
+        graph[quad].restricted = name.upper()
+        graph[triple].link.append(graph[quad])
+        graph[quad].link.append(graph[triple])
+
 
     # link middle to top 2
     for i in range(len(bot_names)):
@@ -163,24 +177,35 @@ def build_graph(example):
     room_nodes = room_nodes - hallway_nodes
 
     # problem-specific state
+    state["aa"] = "D"
+    state["bb"] = "C"
+    state["cc"] = "B"
+    state["dd"] = "A"
+
+    state["aaa"] = "D"
+    state["bbb"] = "B"
+    state["ccc"] = "A"
+    state["ddd"] = "C"
     if example:
         state["a"] = "B"
-        state["aa"] = "A"
         state["b"] = "C"
-        state["bb"] = "D"
         state["c"] = "B"
-        state["cc"] = "C"
         state["d"] = "D"
-        state["dd"] = "A"
+
+        state["aaaa"] = "A"
+        state["bbbb"] = "D"
+        state["cccc"] = "C"
+        state["dddd"] = "A"
     else:
         state["a"] = "D"
-        state["aa"] = "C"
         state["b"] = "B"
-        state["bb"] = "A"
         state["c"] = "C"
-        state["cc"] = "D"
         state["d"] = "A"
-        state["dd"] = "B"
+
+        state["aaaa"] = "C"
+        state["bbbb"] = "A"
+        state["cccc"] = "D"
+        state["dddd"] = "B"
 
 def print_graph():
     row = ""
@@ -198,6 +223,8 @@ def print_graph():
 
     row2 = "  "
     row3 = "  "
+    row4 = "  "
+    row5 = "  "
     bot_names = ["a", "b", "c", "d"]
     for name in bot_names:
         if graph[name].value() == None:
@@ -213,8 +240,24 @@ def print_graph():
             row3 += graph[double].value()
         row3 += " "
 
+        triple = double+name
+        if graph[triple].value() == None:
+            row4 += "."
+        else:
+            row4 += graph[triple].value()
+        row4 += " "
+
+        quad = triple+name
+        if graph[quad].value() == None:
+            row5 += "."
+        else:
+            row5 += graph[quad].value()
+        row5 += " "
+
     print(row2)
     print(row3)
+    print(row4)
+    print(row5)
 
 # returns a final move it if exists
 # (startposkey, endposkey)
@@ -225,16 +268,19 @@ def find_final_move():
 
         c = v.lower()
         double = c + c
+        triple = double + c
+        quad = triple + c
 
-        if state[double] == None:
-            (exists,cost) = graph[k].path_to(graph[double])
-            if exists:
-                return (k, double, cost)
+        targets = [quad,triple,double,c]
 
-        if k != double and state[double] == v and state[c] == None:
-            (exists, cost) = graph[k].path_to(graph[c])
-            if exists:
-                return (k, c, cost)
+        for t in targets:
+            if state[t] == None:
+                (exists,cost) = graph[k].path_to(graph[t])
+                if exists:
+                    return (k, t, cost)
+            if state[t] != v:
+                # don't have a final move if lower layer isn't correct
+                return None
 
     return None
 
@@ -247,19 +293,23 @@ def build_clearout_moves():
     priority = [ "d", "c", "b", "a"]
 
     for c in priority:
-        double = c + c
         upper = c.upper()
 
-        single_clear_needed = False
+        double = c + c
+        triple = double + c
+        quad = triple + c
 
-        if state[double] != upper and state[double] != None:
-            single_clear_needed = True
-            double_list = graph[double].all_legal_moves()
-            moves.extend(double_list)
+        targets = [quad,triple,double,c]
 
-        if (single_clear_needed or state[c] != upper) and state[c] != None:
-            single_list = graph[c].all_legal_moves()
-            moves.extend(single_list)
+        # start clearout at first unmatched target
+        start_clearout_index = 0
+        while start_clearout_index < len(targets) and state[targets[start_clearout_index]] in [upper,None]:
+            start_clearout_index += 1
+
+        for i in range(start_clearout_index, len(targets)):
+            if state[targets[i]] != None:
+                clear_list = graph[targets[i]].all_legal_moves()
+                moves.extend(clear_list)
 
     return moves
 
@@ -314,8 +364,21 @@ def recurse_solve(steps, depth, start_cost):
     moves = build_moves()
     if len(moves) == 0:
         return False
-    #print("depth", depth, "start_cost", start_cost, "moveslen", len(moves))
-    #print_graph()
+
+    global iterations
+    iterations += 1
+    if iterations > 10000:
+        return False
+
+    if iterations % 100 == 0:
+        print("iterations", iterations)
+        print_graph()
+
+    if depth == 3 and False:
+        print("depth", depth, "start_cost", start_cost, "moveslen", len(moves))
+        print("moves", moves)
+        print_graph()
+        assert False
 
     ret_solved = False
 
@@ -325,6 +388,11 @@ def recurse_solve(steps, depth, start_cost):
         steps.append((from_k,to_k,move_cost))
 
         graph[from_k].move_to(graph[to_k])
+
+        if from_k == "dddd":
+            print("clearing dddd", iterations)
+            print_graph()
+            assert False
 
         solved = recurse_solve(steps, depth+1, start_cost+move_cost)
 
@@ -338,7 +406,7 @@ def recurse_solve(steps, depth, start_cost):
     return ret_solved
 
 def main():
-    build_graph(False)
+    build_graph(True)
     print_graph()
 
 #    print("all_legal_moves aa")
