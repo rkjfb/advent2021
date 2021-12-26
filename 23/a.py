@@ -46,7 +46,11 @@ class Node():
         explore = []
         for t in self.link:
             if t.value() == None:
-                explore.append((t, step_cost))
+                multiplier = 1
+                if t.name in hallway_nodes or self.name in hallway_nodes:
+                    # todo: technically incorrect for ll and rr
+                    multiplier = 2
+                explore.append((t, multiplier*step_cost))
 
         while len(explore) > 0:
             (n, current_cost) = explore.pop()
@@ -57,7 +61,11 @@ class Node():
 
             for t in n.link:
                 if t.value() == None and not t in visited:
-                    explore.append((t, current_cost+step_cost))
+                    multiplier = 1
+                    if t.name in hallway_nodes or n.name in hallway_nodes:
+                        # todo: technically incorrect for ll and rr
+                        multiplier = 2
+                    explore.append((t, current_cost+multiplier*step_cost))
 
         return (False,0)
 
@@ -301,30 +309,28 @@ def finished():
 
 iterations = 0
 min_solved_cost = 999999
+min_solved_steps = []
 
 # return True if problem is solved
-def recurse_solve(depth, start_cost):
+def recurse_solve(steps, depth, start_cost):
     global min_solved_cost
+    global min_solved_steps
 
     if finished():
         if start_cost < min_solved_cost:
             min_solved_cost = start_cost
-            print("solved, new min_solved_cost", min_solved_cost)
+            min_solved_steps = steps.copy()
+            print("solved, new min_solved_cost", min_solved_cost, len(steps))
         return True
 
     if start_cost > min_solved_cost:
         # no need to keep searching if we're on a more expensive path than already solved
         return False
 
-    global iterations
-    iterations += 1
-    if iterations > 1000:
-        return False
-
     moves = build_moves()
     if len(moves) == 0:
         return False
-    print("depth", depth, "start_cost", start_cost, "moveslen", len(moves))
+    #print("depth", depth, "start_cost", start_cost, "moveslen", len(moves))
     #print_graph()
 
     ret_solved = False
@@ -332,17 +338,16 @@ def recurse_solve(depth, start_cost):
     for from_k,to_k,move_cost in moves:
         backup_from = state[from_k]
         backup_to = state[to_k]
+        steps.append((from_k,to_k,move_cost))
 
         graph[from_k].move_to(graph[to_k])
 
-        if state[to_k] == "D":
-            print_graph()
-
-        solved = recurse_solve(depth+1, start_cost+move_cost)
+        solved = recurse_solve(steps, depth+1, start_cost+move_cost)
 
         if solved:
             ret_solved = True
 
+        steps.pop()
         state[from_k] = backup_from
         state[to_k] = backup_to
 
@@ -351,9 +356,15 @@ def recurse_solve(depth, start_cost):
 def main():
     build_graph(True)
     print_graph()
-    solved = recurse_solve(0, 0)
+    solved = recurse_solve([], 0, 0)
     print("solved", solved, iterations)
     print("min_solved_cost", min_solved_cost)
-    print_graph()
+
+    total = 0
+    for from_k, to_k, cost in min_solved_steps:
+        graph[from_k].move_to(graph[to_k])
+        print(f"{total}+{cost} {graph[to_k].value()} to {to_k}")
+        total += cost
+        print_graph()
 
 main()
