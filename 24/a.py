@@ -7,7 +7,7 @@ import math
 #from scipy.spatial.transform import Rotation
 
 # useful problem state
-program_input = "1323"
+program_input = "71323"
 program_input_index = 0
 reg = { "w" : 0, "x" : 0, "y" : 0, "z" : 0 }
 
@@ -31,6 +31,10 @@ def inp(r):
 
     program_input_index += 1
 
+def add(left,right):
+    global reg
+    reg[left] += right
+
 def mul(left,right):
     global reg
     reg[left] *= right
@@ -41,9 +45,9 @@ def div(left,right):
     reg[left] = int(reg[left]/right)
 
 def mod(left,right):
-    assert left >= 0
-    assert right > 0
     global reg
+    assert reg[left] >= 0
+    assert right > 0
     reg[left] = reg[left] % right
 
 def eql(left,right):
