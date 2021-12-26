@@ -7,7 +7,7 @@ import math
 #from scipy.spatial.transform import Rotation
 
 # useful problem state
-program_input = "123"
+program_input = "1323"
 program_input_index = 0
 reg = { "w" : 0, "x" : 0, "y" : 0, "z" : 0 }
 
@@ -35,6 +35,24 @@ def mul(left,right):
     global reg
     reg[left] *= right
 
+def div(left,right):
+    assert right != 0
+    global reg
+    reg[left] = int(reg[left]/right)
+
+def mod(left,right):
+    assert left >= 0
+    assert right > 0
+    global reg
+    reg[left] = reg[left] % right
+
+def eql(left,right):
+    global reg
+    if reg[left] == right:
+        reg[left] = 1
+    else:
+        reg[left] = 0
+
 def parse():
     data = open("data.txt", "r")
     rlines = data.readlines()
@@ -51,8 +69,16 @@ def parse():
 
         if instr == "inp":
             inp(left)
+        elif instr == "add":
+            add(left, right)
         elif instr == "mul":
             mul(left, right)
+        elif instr == "div":
+            div(left, right)
+        elif instr == "mod":
+            mod(left, right)
+        elif instr == "eql":
+            eql(left, right)
         else:
             assert False
 
