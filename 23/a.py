@@ -59,9 +59,14 @@ class Node():
     def move_to(self, target):
         if not self.path_to(target):
             print(f"no path_to from {self.name}:{self.value()} to {target.name}")
+            print_graph()
             assert False
         assert target.value() == None
-        assert self.value() != None
+        if self.value() == None:
+            print(f"asked to move None: from {self.name}:{self.value()} to {target.name}:{target.value()}")
+            print_graph()
+            assert False
+
 
         target.set_value(self.value())
         self.set_value(None)
@@ -69,6 +74,14 @@ class Node():
     # returns all legal moves
     # [(from_key,to_key)]
     def all_legal_moves(self):
+        if self.value() == None:
+            print(f"all_legal_moves {self.name}:{self.value()}")
+            print_graph()
+            assert False
+
+        hallway_nodes = ["ll", "l", "ab", "bc", "cd", "r", "rr"]
+        start_hallway = self.name in hallway_nodes
+
         visited = set()
         explore = []
         for t in self.link:
@@ -82,8 +95,12 @@ class Node():
             n = explore.pop()
             visited.add(n)
 
-            if n.value() == None:
-                ret.append((self.name, n.name))
+            if n.restricted == None or self.value() == n.restricted:
+                if n.value() == None:
+                    n_hallway = n.name in hallway_nodes
+
+                    if start_hallway != n_hallway:
+                        ret.append((self.name, n.name))
 
             for t in n.link:
                 if t.value() == None and not t in visited:
@@ -116,13 +133,17 @@ def build_graph(example):
 
     top_names = ["ll", "l", "ab", "bc", "cd", "r", "rr"]
 
+    # create the top row nodes
     for name in top_names:
         graph[name] = Node(name)
 
+    # link top row
     for i in range(len(top_names)-1):
         graph[top_names[i]].link.append(graph[top_names[i+1]])
         graph[top_names[i+1]].link.append(graph[top_names[i]])
 
+    # create bottom 2 row nodes
+    # link bottom with middle
     bot_names = ["a", "b", "c", "d"]
     for name in bot_names:
         double = name+name
@@ -133,18 +154,23 @@ def build_graph(example):
         graph[name].link.append(graph[double])
         graph[double].link.append(graph[name])
 
-    # zigs
+    # link middle to top 2
     for i in range(len(bot_names)):
         bot = bot_names[i]
-        top = top_names[i+1]
-        top2 = top_names[i+2]
-        graph[bot].link.append(graph[top])
-        graph[bot].link.append(graph[top2])
-        graph[top].link.append(graph[top2])
 
+        top = top_names[i+1]
+        graph[bot].link.append(graph[top])
+        graph[top].link.append(graph[bot])
+
+        top2 = top_names[i+2]
+        graph[bot].link.append(graph[top2])
+        graph[top2].link.append(graph[bot])
+
+    # clear initial state
     for k,v in graph.items():
         state[k] = None
 
+    # problem-specific state
     if example:
         state["a"] = "B"
         state["aa"] = "A"
@@ -212,7 +238,7 @@ def find_final_move():
             if graph[k].path_to(graph[double]):
                 return (k, double)
 
-        if state[double] == v and state[c] == None:
+        if k != double and state[double] == v and state[c] == None:
             if graph[k].path_to(graph[c]):
                 return (k, c)
 
@@ -230,14 +256,14 @@ def build_clearout_moves():
         double = c + c
         upper = c.upper()
 
-        single_clear_needed = (state[c] != upper)
+        single_clear_needed = False
 
-        if state[double] != upper:
+        if state[double] != upper and state[double] != None:
             single_clear_needed = True
             double_list = graph[double].all_legal_moves()
             moves.extend(double_list)
 
-        if single_clear_needed and state[c] != upper:
+        if (single_clear_needed or state[c] != upper) and state[c] != None:
             single_list = graph[c].all_legal_moves()
             moves.extend(single_list)
 
@@ -251,6 +277,8 @@ def build_moves():
         return [move]
 
     moves = build_clearout_moves()
+
+    #print(moves)
 
     # todo: are there move legal moves here?
 
@@ -269,12 +297,22 @@ def finished():
 
     return True
 
+iterations = 0
+
 # return True if problem is solved
 def recurse_solve(depth):
     if finished():
         return True
 
+    global iterations
+    iterations += 1
+    if iterations > 135:
+        print("too many")
+        return True
+
     moves = build_moves()
+    if len(moves) == 0:
+        return False
     print("depth", depth, "moveslen", len(moves))
     print_graph()
 
@@ -296,6 +334,8 @@ def recurse_solve(depth):
 
 def main():
     build_graph(True)
-    recurse_solve(0)
+    solved = recurse_solve(0)
+    print("solved", solved)
+    print_graph()
 
 main()
