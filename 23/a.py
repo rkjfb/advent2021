@@ -8,6 +8,8 @@ import math
 
 # graph of board paths
 graph = {}
+hallway_nodes = set()
+room_nodes = set()
 # current board state
 state = {}
 
@@ -29,35 +31,40 @@ class Node():
         global state
         state[self.name] = val
 
-    # returns true if there's a path to target
+    # returns (True, score) if there's a path to target
+    # otherwise (False, 0)
     def path_to(self, target):
         if target.restricted != None:
             if self.value() != target.restricted:
                 # eg. only D is allowed in 'dd'
-                return False
+                return (False,0)
+
+        step_cost_dict = {"A":1, "B":10, "C":100, "D":1000}
+        step_cost = step_cost_dict[self.value()]
 
         visited = set()
         explore = []
         for t in self.link:
             if t.value() == None:
-                explore.append(t)
+                explore.append((t, step_cost))
 
         while len(explore) > 0:
-            n = explore.pop()
+            (n, current_cost) = explore.pop()
             visited.add(n)
 
             if n == target:
-                return True
+                return (True, current_cost)
 
             for t in n.link:
                 if t.value() == None and not t in visited:
-                    explore.append(t)
+                    explore.append((t, current_cost+step_cost))
 
-        return False
+        return (False,0)
 
     # moves contents of self to target
     def move_to(self, target):
-        if not self.path_to(target):
+        (exists,cost) = self.path_to(target)
+        if not exists:
             print(f"no path_to from {self.name}:{self.value()} to {target.name}")
             print_graph()
             assert False
@@ -72,39 +79,25 @@ class Node():
         self.set_value(None)
 
     # returns all legal moves
-    # [(from_key,to_key)]
+    # [(from_key,to_key,cost)]
     def all_legal_moves(self):
         if self.value() == None:
             print(f"all_legal_moves {self.name}:{self.value()}")
             print_graph()
             assert False
 
-        hallway_nodes = ["ll", "l", "ab", "bc", "cd", "r", "rr"]
-        start_hallway = self.name in hallway_nodes
-
-        visited = set()
-        explore = []
-        for t in self.link:
-            if t.value() == None:
-                explore.append(t)
+        target_set = None
+        if self.name in hallway_nodes:
+            target_set = room_nodes
+        else:
+            target_set = hallway_nodes
 
         ret = []
-
-        while len(explore) > 0:
-
-            n = explore.pop()
-            visited.add(n)
-
-            if n.restricted == None or self.value() == n.restricted:
-                if n.value() == None:
-                    n_hallway = n.name in hallway_nodes
-
-                    if start_hallway != n_hallway:
-                        ret.append((self.name, n.name))
-
-            for t in n.link:
-                if t.value() == None and not t in visited:
-                    explore.append(t)
+        for target_name in target_set:
+            target = graph[target_name]
+            (exists, cost) = self.path_to(target)
+            if exists:
+                ret.append((self.name, target.name, cost))
 
         return ret
 
@@ -130,11 +123,15 @@ class Node():
 
 def build_graph(example):
     global graph
+    global hallway_nodes
+    global room_nodes
 
     top_names = ["ll", "l", "ab", "bc", "cd", "r", "rr"]
+    hallway_nodes = set(top_names)
 
     # create the top row nodes
     for name in top_names:
+        assert name in hallway_nodes
         graph[name] = Node(name)
 
     # link top row
@@ -169,6 +166,9 @@ def build_graph(example):
     # clear initial state
     for k,v in graph.items():
         state[k] = None
+        room_nodes.add(k)
+
+    room_nodes = room_nodes - hallway_nodes
 
     # problem-specific state
     if example:
@@ -235,12 +235,14 @@ def find_final_move():
         double = c + c
 
         if state[double] == None:
-            if graph[k].path_to(graph[double]):
-                return (k, double)
+            (exists,cost) = graph[k].path_to(graph[double])
+            if exists:
+                return (k, double, cost)
 
         if k != double and state[double] == v and state[c] == None:
-            if graph[k].path_to(graph[c]):
-                return (k, c)
+            (exists, cost) = graph[k].path_to(graph[c])
+            if exists:
+                return (k, c, cost)
 
     return None
 
@@ -298,44 +300,60 @@ def finished():
     return True
 
 iterations = 0
+min_solved_cost = 999999
 
 # return True if problem is solved
-def recurse_solve(depth):
+def recurse_solve(depth, start_cost):
+    global min_solved_cost
+
     if finished():
+        if start_cost < min_solved_cost:
+            min_solved_cost = start_cost
+            print("solved, new min_solved_cost", min_solved_cost)
         return True
+
+    if start_cost > min_solved_cost:
+        # no need to keep searching if we're on a more expensive path than already solved
+        return False
 
     global iterations
     iterations += 1
-    if iterations > 135:
-        print("too many")
-        return True
+    if iterations > 1000:
+        return False
 
     moves = build_moves()
     if len(moves) == 0:
         return False
-    print("depth", depth, "moveslen", len(moves))
-    print_graph()
+    print("depth", depth, "start_cost", start_cost, "moveslen", len(moves))
+    #print_graph()
 
-    for from_k,to_k in moves:
+    ret_solved = False
+
+    for from_k,to_k,move_cost in moves:
         backup_from = state[from_k]
         backup_to = state[to_k]
 
         graph[from_k].move_to(graph[to_k])
 
-        solved = recurse_solve(depth+1)
+        if state[to_k] == "D":
+            print_graph()
+
+        solved = recurse_solve(depth+1, start_cost+move_cost)
 
         if solved:
-            return True
+            ret_solved = True
 
         state[from_k] = backup_from
         state[to_k] = backup_to
 
-    return False
+    return ret_solved
 
 def main():
     build_graph(True)
-    solved = recurse_solve(0)
-    print("solved", solved)
+    print_graph()
+    solved = recurse_solve(0, 0)
+    print("solved", solved, iterations)
+    print("min_solved_cost", min_solved_cost)
     print_graph()
 
 main()
