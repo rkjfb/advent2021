@@ -10,6 +10,7 @@ import sys
 # graph of board paths
 graph = {}
 hallway_nodes = set()
+hallway_nodes_for_D = set()
 room_nodes = set()
 # current board state
 state = {}
@@ -102,7 +103,10 @@ class Node():
         if self.name in hallway_nodes:
             target_set = room_nodes
         else:
-            target_set = hallway_nodes
+            if self.value() == "D":
+                target_set = hallway_nodes_for_D
+            else:
+                target_set = hallway_nodes
 
         ret = []
         for target_name in target_set:
@@ -116,10 +120,12 @@ class Node():
 def build_graph(example):
     global graph
     global hallway_nodes
+    global hallway_nodes_for_D
     global room_nodes
 
     top_names = ["ll", "l", "ab", "bc", "cd", "r", "rr"]
     hallway_nodes = set(top_names)
+    hallway_nodes_for_D = set(["cd", "r"])
 
     # create the top row nodes
     for name in top_names:
@@ -267,6 +273,7 @@ def find_final_move():
             continue
 
         c = v.lower()
+
         double = c + c
         triple = double + c
         quad = triple + c
@@ -274,13 +281,17 @@ def find_final_move():
         targets = [quad,triple,double,c]
 
         for t in targets:
+            if t in k:
+                # don't want to move further up the stack
+                break
+
             if state[t] == None:
                 (exists,cost) = graph[k].path_to(graph[t])
                 if exists:
                     return (k, t, cost)
             if state[t] != v:
-                # don't have a final move if lower layer isn't correct
-                return None
+                # don't have a final move to an upper layer if the lower layer doesn't match
+                break
 
     return None
 
@@ -309,6 +320,8 @@ def build_clearout_moves():
         for i in range(start_clearout_index, len(targets)):
             if state[targets[i]] != None:
                 clear_list = graph[targets[i]].all_legal_moves()
+                if len(clear_list)>0:
+                    return clear_list
                 moves.extend(clear_list)
 
     return moves
@@ -367,18 +380,14 @@ def recurse_solve(steps, depth, start_cost):
 
     global iterations
     iterations += 1
-    if iterations > 10000:
+    if iterations > 10:
         return False
+
+    print_graph()
 
     if iterations % 100 == 0:
         print("iterations", iterations)
         print_graph()
-
-    if depth == 3 and False:
-        print("depth", depth, "start_cost", start_cost, "moveslen", len(moves))
-        print("moves", moves)
-        print_graph()
-        assert False
 
     ret_solved = False
 
@@ -388,11 +397,6 @@ def recurse_solve(steps, depth, start_cost):
         steps.append((from_k,to_k,move_cost))
 
         graph[from_k].move_to(graph[to_k])
-
-        if from_k == "dddd":
-            print("clearing dddd", iterations)
-            print_graph()
-            assert False
 
         solved = recurse_solve(steps, depth+1, start_cost+move_cost)
 
@@ -409,10 +413,22 @@ def main():
     build_graph(True)
     print_graph()
 
-#    print("all_legal_moves aa")
-#    moves = graph["a"].all_legal_moves()
+
+#    state["c"] = None
+#    state["cc"] = None
+#    state["ccc"] = None
+#    state["bc"] = "A"
+#    state["cd"] = "A"
+#    state["r"] = "D"
+#
+#    print_graph()
+#    
+#    print("build_moves aa")
+#    moves = build_moves()
 #    for m in moves:
 #        print(m)
+#
+#    assert(False)
 
     solved = recurse_solve([], 0, 0)
     print("solved", solved, iterations)
