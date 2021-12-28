@@ -236,7 +236,8 @@ def search_forward(prog_index, start_z):
     ret = ""
         
     global reg
-    characters = "987654321"
+    #characters = "987654321"
+    characters = "123456789"
 
     for pi in range(prog_index, len(program)):
         print("program", pi, "start_z", start_z, "possible outputs", len(backward[pi+1]))
@@ -264,7 +265,8 @@ def search_backward(prog_index, end_z):
     ret = ""
         
     global reg
-    characters = "987654321"
+    #characters = "987654321"
+    characters = "123456789"
 
     for pi in range(prog_index, -1, -1):
         print("program", pi, "end_z", end_z, "possible inputs", len(forward[pi-1]))
