@@ -85,11 +85,31 @@ def step_south():
 
     ground = new_ground
 
+# returns True if a change occured
+def step():
+    global ground
+    initial_ground = ground
+
+    step_east()
+    step_south()
+
+    change = False
+    for k,v in initial_ground.items():
+        if v != None and v in ">v":
+            if ground[k] != v:
+                change = True
+                break
+
+    return change
+
 def main():
     parse()
     print_ground()
-    step_east()
-    step_south()
-    print_ground()
+    for i in range(1000):
+        change = step()
+        if not change:
+            print("step", i+1, change)
+            print_ground()
+            break
 
 main()
