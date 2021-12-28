@@ -37,6 +37,7 @@ def parse():
     maxy = y
 
 def print_ground():
+    global ground
     for y in range(maxy):
         row = ""
         for x in range(maxx):
@@ -46,9 +47,49 @@ def print_ground():
             else:
                 row += "."
         print(row)
+    print()
+
+def step_east():
+    global ground
+    new_ground = collections.defaultdict(lambda:None)
+    for k,v in ground.items():
+        (x,y) = k
+        if v == ">":
+            nx = (x + 1) % maxx
+            if (nx,y) not in ground or ground[(nx,y)] == None:
+                new_ground[(nx,y)] = v
+            else:
+                new_ground[(x,y)] = v
+        elif v == "v":
+            new_ground[(x,y)] = v
+        else:
+            assert v == None
+
+    ground = new_ground
+
+def step_south():
+    global ground
+    new_ground = collections.defaultdict(lambda:None)
+    for k,v in ground.items():
+        (x,y) = k
+        if v == "v":
+            ny = (y + 1) % maxy
+            if (x,ny) not in ground or ground[(x,ny)] == None:
+                new_ground[(x,ny)] = v
+            else:
+                new_ground[(x,y)] = v
+        elif v == ">":
+            new_ground[(x,y)] = v
+        else:
+            assert v == None
+
+    ground = new_ground
 
 def main():
     parse()
+    print_ground()
+    step_east()
+    step_south()
     print_ground()
 
 main()
